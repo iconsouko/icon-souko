@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アイコン倉庫さん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3EEE4;
+    --surface: #FFFFFF;
+    --ink: #3A352F;
+    --ink-soft: #6B6259;
+    --accent: #4F6D5A;
+    --accent-dark: #3B5445;
+    --tag: #C98A3A;
+    --border: #E3DACB;
+    --error: #B4544A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 17px;
+    margin: 0;
+  }
+  .signout-link {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px 0;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: #EDE6D8;
+    color: var(--ink-soft);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .tab-btn.active { background: var(--surface); color: var(--accent-dark); font-weight: 700; }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    min-height: 60vh;
+  }
+
+  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+  .upload-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .upload-btn:hover { background: var(--accent-dark); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+  }
+  .icon-cell {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .icon-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .icon-cell .label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(58,53,47,0.65);
+    color: #fff;
+    font-size: 10.5px;
+    padding: 3px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+  }
+  .empty-state p { font-size: 14px; line-height: 1.8; }
+
+  .placeholder-tab { text-align: center; padding: 60px 20px; color: var(--ink-soft); font-size: 14px; }
+
+  /* モーダル共通 */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(58,53,47,0.45);
+    align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 17px;
+    margin: 0 0 18px;
+  }
+  .field { margin-bottom: 16px; text-align: left; }
+  .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input[type="text"], .field input[type="month"], .field input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+  }
+  .field .hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions button {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
+  .btn-save { background: var(--accent); border: none; color: #fff; font-weight: 500; }
+  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .modal-error { color: var(--error); font-size: 12.5px; margin-top: 10px; }
+
+  /* アップロード演出(シェア想定・全画面) */
+  .celebration-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: linear-gradient(160deg, #4F6D5A, #3B5445);
+    color: #fff;
+    align-items: center; justify-content: center;
+    z-index: 200;
+    padding: 24px;
+  }
+  .celebration-overlay.show { display: flex; }
+  .celebration-card {
+    text-align: center;
+    max-width: 340px;
+  }
+  .celebration-card .icon-preview {
+    width: 140px; height: 140px;
+    border-radius: 20px;
+    object-fit: cover;
+    margin: 0 auto 24px;
+    border: 4px solid rgba(255,255,255,0.9);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  }
+  .celebration-card .big-msg {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+  .celebration-card .sub-msg {
+    font-size: 13px;
+    opacity: 0.85;
+    margin: 0 0 28px;
+  }
+  .celebration-card .brand {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 20px;
+  }
+  .celebration-close {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🗃️ アイコン倉庫さん</h1>
+  <button class="signout-link" id="signoutBtn">ログアウト</button>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tabReceived">もらったアイコン</button>
+  <button class="tab-btn" id="tabCreated">つくったアイコン</button>
+</div>
+
+<main>
+  <div id="receivedView">
+    <div class="toolbar"><button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <p>まだアイコンが登録されていません。<br>推しからもらったアイコンを、ここに集めていきましょう。</p>
+    </div>
+  </div>
+  <div id="createdView" style="display:none;">
+    <div class="placeholder-tab">「つくったアイコン」機能は準備中です。<br>もうしばらくお待ちください。</div>
+  </div>
+</main>
+
+<!-- アップロードモーダル -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <h2>アイコンを追加</h2>
+    <div class="field">
+      <label for="fileInput">画像ファイル</label>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+    <div class="field">
+      <label for="streamerInput">ライバー名</label>
+      <input type="text" id="streamerInput" list="streamerList" placeholder="例:れいかさん">
+      <datalist id="streamerList"></datalist>
+    </div>
+    <div class="field">
+      <label for="tagInput">配布理由タグ(カンマ区切りで複数入力可)</label>
+      <input type="text" id="tagInput" list="tagList" placeholder="例:毎月, 誕生日記念">
+      <datalist id="tagList"></datalist>
+      <div class="hint">「毎月」「誕生日記念」など、あとで絞り込みに使えます</div>
+    </div>
+    <div class="field">
+      <label for="monthInput">受け取った月</label>
+      <input type="month" id="monthInput">
+    </div>
+    <div class="modal-error" id="modalError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelUploadBtn">キャンセル</button>
+      <button class="btn-save" id="saveUploadBtn">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- アップロード演出 -->
+<div class="celebration-overlay" id="celebrationOverlay">
+  <div class="celebration-card">
+    <img class="icon-preview" id="celebrationImg" src="" alt="">
+    <p class="big-msg" id="celebrationMsg"></p>
+    <p class="sub-msg" id="celebrationSub"></p>
+    <div class="brand">🗃️ アイコン倉庫さん</div>
+    <button class="celebration-close" id="celebrationCloseBtn">とじる</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, setDoc, getDocs, getDoc,
+    query, where, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
+    authDomain: "icon-souko-b2471.firebaseapp.com",
+    projectId: "icon-souko-b2471",
+    storageBucket: "icon-souko-b2471.firebasestorage.app",
+    messagingSenderId: "638657050327",
+    appId: "1:638657050327:web:9b1f5ac8345c6064326292"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+    currentUser = user;
+    loadReceivedIcons();
+    loadStreamerList();
+    loadTagList();
+  });
+
+  document.getElementById("signoutBtn").addEventListener("click", () => signOut(auth));
+
+  // タブ切り替え
+  const tabReceived = document.getElementById("tabReceived");
+  const tabCreated = document.getElementById("tabCreated");
+  tabReceived.addEventListener("click", () => {
+    tabReceived.classList.add("active");
+    tabCreated.classList.remove("active");
+    document.getElementById("receivedView").style.display = "block";
+    document.getElementById("createdView").style.display = "none";
+  });
+  tabCreated.addEventListener("click", () => {
+    tabCreated.classList.add("active");
+    tabReceived.classList.remove("active");
+    document.getElementById("createdView").style.display = "block";
+    document.getElementById("receivedView").style.display = "none";
+  });
+
+  // ギャラリー読み込み
+  async function loadReceivedIcons() {
+    const grid = document.getElementById("grid");
+    const emptyState = document.getElementById("emptyState");
+    grid.innerHTML = "";
+    const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      emptyState.style.display = "block";
+      return;
+    }
+    emptyState.style.display = "none";
+    snap.forEach((d) => {
+      const data = d.data();
+      const cell = document.createElement("div");
+      cell.className = "icon-cell";
+      cell.innerHTML = `<img src="${data.imageUrl}" alt="${data.streamerName || ""}" loading="lazy">
+        <div class="label">${data.streamerName || ""}</div>`;
+      grid.appendChild(cell);
+    });
+  }
+
+  // ライバー名・タグの候補読み込み
+  async function loadStreamerList() {
+    const listEl = document.getElementById("streamerList");
+    listEl.innerHTML = "";
+    const snap = await getDocs(collection(db, "users", currentUser.uid, "streamers"));
+    snap.forEach((d) => {
+      const opt = document.createElement("option");
+      opt.value = d.data().label;
+      listEl.appendChild(opt);
+    });
+  }
+  async function loadTagList() {
+    const listEl = document.getElementById("tagList");
+    listEl.innerHTML = "";
+    const snap = await getDocs(collection(db, "users", currentUser.uid, "reasonTags"));
+    snap.forEach((d) => {
+      const opt = document.createElement("option");
+      opt.value = d.data().label;
+      listEl.appendChild(opt);
+    });
+  }
+
+  // モーダル開閉
+  const uploadModal = document.getElementById("uploadModal");
+  document.getElementById("openUploadBtn").addEventListener("click", () => {
+    document.getElementById("fileInput").value = "";
+    document.getElementById("streamerInput").value = "";
+    document.getElementById("tagInput").value = "";
+    document.getElementById("monthInput").value = new Date().toISOString().slice(0, 7);
+    document.getElementById("modalError").textContent = "";
+    uploadModal.classList.add("show");
+  });
+  document.getElementById("cancelUploadBtn").addEventListener("click", () => uploadModal.classList.remove("show"));
+
+  // 画像リサイズ(長辺1000pxまで縮小してJPEGに変換)
+  function resizeImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = (e) => { img.src = e.target.result; };
+      reader.onerror = reject;
+      img.onload = () => {
+        const maxSize = 1000;
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round(height * maxSize / width); width = maxSize; }
+          else { width = Math.round(width * maxSize / height); height = maxSize; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+      };
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function normalize(str) { return str.trim().toLowerCase(); }
+
+  async function ensureCandidate(subcollection, label) {
+    if (!label) return;
+    const norm = normalize(label);
+    const snap = await getDocs(collection(db, "users", currentUser.uid, subcollection));
+    const exists = snap.docs.some((d) => normalize(d.data().label) === norm);
+    if (!exists) {
+      const newRef = doc(collection(db, "users", currentUser.uid, subcollection));
+      await setDoc(newRef, { label, normalizedLabel: norm, createdAt: serverTimestamp() });
+    }
+  }
+
+  document.getElementById("saveUploadBtn").addEventListener("click", async () => {
+    const fileInput = document.getElementById("fileInput");
+    const streamerName = document.getElementById("streamerInput").value.trim();
+    const tagRaw = document.getElementById("tagInput").value.trim();
+    const receivedMonth = document.getElementById("monthInput").value;
+    const errorEl = document.getElementById("modalError");
+    const saveBtn = document.getElementById("saveUploadBtn");
+
+    if (!fileInput.files[0]) { errorEl.textContent = "画像ファイルを選択してください。"; return; }
+    if (!streamerName) { errorEl.textContent = "ライバー名を入力してください。"; return; }
+
+    errorEl.textContent = "";
+    saveBtn.disabled = true;
+    saveBtn.textContent = "保存中…";
+
+    try {
+      const reasonTags = tagRaw ? tagRaw.split(/[,、]/).map((t) => t.trim()).filter(Boolean) : [];
+
+      const blob = await resizeImage(fileInput.files[0]);
+      const newDocRef = doc(collection(db, "users", currentUser.uid, "receivedIcons"));
+      const storagePath = `users/${currentUser.uid}/receivedIcons/${newDocRef.id}.jpg`;
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+      const imageUrl = await getDownloadURL(storageRef);
+
+      await setDoc(newDocRef, {
+        imageUrl,
+        streamerName,
+        reasonTags,
+        receivedMonth,
+        isFavorite: false,
+        fileSize: blob.size,
+        createdAt: serverTimestamp()
+      });
+
+      await ensureCandidate("streamers", streamerName);
+      for (const tag of reasonTags) await ensureCandidate("reasonTags", tag);
+
+      // 累計枚数(このライバーさん分)をカウント
+      const countSnap = await getDocs(query(
+        collection(db, "users", currentUser.uid, "receivedIcons"),
+        where("streamerName", "==", streamerName)
+      ));
+      const count = countSnap.size;
+
+      uploadModal.classList.remove("show");
+      await loadReceivedIcons();
+      await loadStreamerList();
+      await loadTagList();
+      showCelebration(imageUrl, streamerName, count);
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent = "保存に失敗しました。もう一度お試しください。";
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存する";
+    }
+  });
+
+  function showCelebration(imageUrl, streamerName, count) {
+    document.getElementById("celebrationImg").src = imageUrl;
+    document.getElementById("celebrationMsg").textContent = `${streamerName}さんのアイコン、${count}枚目です!`;
+    document.getElementById("celebrationSub").textContent = "また新しい思い出が増えました";
+    document.getElementById("celebrationOverlay").classList.add("show");
+  }
+  document.getElementById("celebrationCloseBtn").addEventListener("click", () => {
+    document.getElementById("celebrationOverlay").classList.remove("show");
+  });
+</script>
+
+</body>
+</html>
