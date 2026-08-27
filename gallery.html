@@ -121,6 +121,53 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .fav-btn {
+    position: absolute; top: 5px; right: 5px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.85);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+    padding: 0;
+  }
+  .fav-btn.is-fav { background: var(--tag); color: #fff; }
+
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .filter-bar select {
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 12.5px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .fav-filter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .filter-count {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
 
   .empty-state {
     text-align: center;
@@ -247,6 +294,12 @@
 <main>
   <div id="receivedView">
     <div class="toolbar"><button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button></div>
+    <div class="filter-bar">
+      <select id="filterStreamer"><option value="">ライバー:すべて</option></select>
+      <select id="filterTag"><option value="">タグ:すべて</option></select>
+      <label class="fav-filter"><input type="checkbox" id="filterFavOnly"> お気に入りのみ</label>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
     <div class="grid" id="grid"></div>
     <div class="empty-state" id="emptyState" style="display:none;">
       <p>まだアイコンが登録されていません。<br>推しからもらったアイコンを、ここに集めていきましょう。</p>
@@ -303,7 +356,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, doc, setDoc, getDocs, getDoc,
+    getFirestore, collection, doc, setDoc, updateDoc, getDocs, getDoc,
     query, where, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import {
@@ -355,27 +408,93 @@
     document.getElementById("receivedView").style.display = "none";
   });
 
-  // ギャラリー読み込み
+  // ギャラリー読み込み(全件を一度取得し、以降はクライアント側で絞り込む)
+  let allIcons = [];
+
   async function loadReceivedIcons() {
-    const grid = document.getElementById("grid");
-    const emptyState = document.getElementById("emptyState");
-    grid.innerHTML = "";
     const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
-    if (snap.empty) {
+    allIcons = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    populateFilterOptions();
+    renderGrid();
+  }
+
+  function populateFilterOptions() {
+    const streamerSel = document.getElementById("filterStreamer");
+    const tagSel = document.getElementById("filterTag");
+    const prevStreamer = streamerSel.value;
+    const prevTag = tagSel.value;
+
+    const streamers = [...new Set(allIcons.map((i) => i.streamerName).filter(Boolean))].sort();
+    const tags = [...new Set(allIcons.flatMap((i) => i.reasonTags || []))].sort();
+
+    streamerSel.innerHTML = '<option value="">ライバー:すべて</option>' +
+      streamers.map((s) => `<option value="${s}">${s}</option>`).join("");
+    tagSel.innerHTML = '<option value="">タグ:すべて</option>' +
+      tags.map((t) => `<option value="${t}">${t}</option>`).join("");
+
+    streamerSel.value = streamers.includes(prevStreamer) ? prevStreamer : "";
+    tagSel.value = tags.includes(prevTag) ? prevTag : "";
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById("grid");
+    const emptyState = document.getElementById("emptyState");
+    const filterCount = document.getElementById("filterCount");
+    const streamerFilter = document.getElementById("filterStreamer").value;
+    const tagFilter = document.getElementById("filterTag").value;
+    const favOnly = document.getElementById("filterFavOnly").checked;
+
+    const filtered = allIcons.filter((icon) => {
+      if (streamerFilter && icon.streamerName !== streamerFilter) return false;
+      if (tagFilter && !(icon.reasonTags || []).includes(tagFilter)) return false;
+      if (favOnly && !icon.isFavorite) return false;
+      return true;
+    });
+
+    grid.innerHTML = "";
+
+    if (allIcons.length === 0) {
       emptyState.style.display = "block";
+      filterCount.textContent = "";
       return;
     }
     emptyState.style.display = "none";
-    snap.forEach((d) => {
-      const data = d.data();
+    filterCount.textContent = `${filtered.length} / ${allIcons.length} 枚`;
+
+    filtered.forEach((data) => {
       const cell = document.createElement("div");
       cell.className = "icon-cell";
-      cell.innerHTML = `<img src="${data.imageUrl}" alt="${data.streamerName || ""}" loading="lazy">
+      cell.innerHTML = `
+        <img src="${data.imageUrl}" alt="${data.streamerName || ""}" loading="lazy">
+        <button class="fav-btn${data.isFavorite ? " is-fav" : ""}" data-id="${data.id}" aria-label="お気に入り切り替え">${data.isFavorite ? "★" : "☆"}</button>
         <div class="label">${data.streamerName || ""}</div>`;
+      cell.querySelector(".fav-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFavorite(data.id);
+      });
       grid.appendChild(cell);
     });
   }
+
+  async function toggleFavorite(iconId) {
+    const icon = allIcons.find((i) => i.id === iconId);
+    if (!icon) return;
+    const newVal = !icon.isFavorite;
+    icon.isFavorite = newVal; // 先に画面を更新(操作の手応えを優先)
+    renderGrid();
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid, "receivedIcons", iconId), { isFavorite: newVal });
+    } catch (err) {
+      console.error(err);
+      icon.isFavorite = !newVal; // 失敗したら元に戻す
+      renderGrid();
+    }
+  }
+
+  document.getElementById("filterStreamer").addEventListener("change", renderGrid);
+  document.getElementById("filterTag").addEventListener("change", renderGrid);
+  document.getElementById("filterFavOnly").addEventListener("change", renderGrid);
 
   // ライバー名・タグの候補読み込み
   async function loadStreamerList() {
