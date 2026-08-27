@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アイコン倉庫さん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3EEE4;
+    --surface: #FFFFFF;
+    --ink: #3A352F;
+    --ink-soft: #6B6259;
+    --accent: #4F6D5A;
+    --accent-dark: #3B5445;
+    --tag: #C98A3A;
+    --border: #E3DACB;
+    --error: #B4544A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 10% 15%, rgba(79,109,90,0.05), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(201,138,58,0.06), transparent 40%);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 48px 40px 40px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 2px 0 var(--border), 0 20px 40px -20px rgba(58,53,47,0.25);
+    position: relative;
+  }
+
+  /* 荷札(ラベル)風のワンポイント */
+  .card::before {
+    content: "";
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 64px;
+    height: 28px;
+    background: var(--tag);
+    border-radius: 4px;
+    box-shadow: 0 3px 8px rgba(201,138,58,0.35);
+  }
+  .card::after {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg) translateX(-20px);
+    width: 6px;
+    height: 6px;
+    background: var(--bg);
+    border: 1.5px solid var(--accent-dark);
+    border-radius: 50%;
+  }
+
+  .logo-mark {
+    width: 56px;
+    height: 56px;
+    margin: 8px auto 18px;
+    display: block;
+  }
+
+  h1 {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    margin: 0 0 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .tagline {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin: 0 0 32px;
+    line-height: 1.7;
+  }
+
+  .google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 13px 18px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .google-btn:hover { background: var(--accent-dark); }
+  .google-btn:active { transform: scale(0.98); }
+  .google-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .google-btn:focus-visible { outline: 3px solid var(--tag); outline-offset: 2px; }
+
+  .google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .status {
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 18px;
+  }
+  .status.error { color: var(--error); }
+  .status.info { color: var(--ink-soft); }
+
+  .welcome { display: none; }
+  .welcome.show { display: block; }
+  .login-area.hide { display: none; }
+
+  .welcome p { font-size: 15px; margin: 0 0 24px; }
+  .welcome strong { color: var(--accent-dark); }
+
+  .signout-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .signout-btn:hover { background: var(--bg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .google-btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <svg class="logo-mark" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="20" width="40" height="28" rx="3" fill="#F3EEE4" stroke="#4F6D5A" stroke-width="2.5"/>
+      <path d="M6 20L28 8L50 20" stroke="#4F6D5A" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+      <line x1="8" y1="28" x2="48" y2="28" stroke="#4F6D5A" stroke-width="2"/>
+      <circle cx="28" cy="36" r="3.2" fill="#C98A3A"/>
+    </svg>
+
+    <div class="login-area" id="loginArea">
+      <h1>アイコン倉庫さん</h1>
+      <p class="tagline">もらったアイコン、つくったアイコン。<br>ひとつひとつ、大切にしまっておこう。</p>
+
+      <button class="google-btn" id="loginBtn">
+        <svg class="google-icon" viewBox="0 0 48 48">
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.6-5.2-11.6-11.6S17.6 12.3 24 12.3c3 0 5.6 1.1 7.7 3l5.7-5.7C34 6.4 29.3 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5c10.4 0 19-8.5 19-19 0-1.4-.2-2.7-.4-4z"/>
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.6 18.9 12.3 24 12.3c3 0 5.6 1.1 7.7 3l5.7-5.7C34 6.4 29.3 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/>
+          <path fill="#4CAF50" d="M24 43.5c5.2 0 9.9-1.8 13.5-4.7l-6.2-5.3c-2 1.4-4.6 2.2-7.3 2.2-5.3 0-9.7-3.5-11.3-8.4l-6.5 5C9.5 39 16.2 43.5 24 43.5z"/>
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.3 4.4-4.2 5.9l6.2 5.3C40.7 36.6 43.5 30.8 43.5 24c0-1.4-.2-2.7-.4-3.5z"/>
+        </svg>
+        Googleでログイン
+      </button>
+
+      <p class="status" id="statusMsg"></p>
+    </div>
+
+    <div class="welcome" id="welcomeArea">
+      <h1>おかえりなさい</h1>
+      <p><strong id="userName"></strong> さん、ログインしました。</p>
+      <button class="signout-btn" id="signoutBtn">ログアウト</button>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup,
+    onAuthStateChanged, signOut, getAdditionalUserInfo
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
+    authDomain: "icon-souko-b2471.firebaseapp.com",
+    projectId: "icon-souko-b2471",
+    storageBucket: "icon-souko-b2471.firebasestorage.app",
+    messagingSenderId: "638657050327",
+    appId: "1:638657050327:web:9b1f5ac8345c6064326292"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  const loginBtn = document.getElementById("loginBtn");
+  const signoutBtn = document.getElementById("signoutBtn");
+  const statusMsg = document.getElementById("statusMsg");
+  const loginArea = document.getElementById("loginArea");
+  const welcomeArea = document.getElementById("welcomeArea");
+  const userName = document.getElementById("userName");
+
+  function setStatus(msg, type) {
+    statusMsg.textContent = msg || "";
+    statusMsg.className = "status" + (type ? " " + type : "");
+  }
+
+  loginBtn.addEventListener("click", async () => {
+    loginBtn.disabled = true;
+    setStatus("ログイン処理中です…", "info");
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const info = getAdditionalUserInfo(result);
+
+      if (info && info.isNewUser) {
+        // 新規登録者のみ、受付状況をチェックする
+        const signupSnap = await getDoc(doc(db, "config", "signup"));
+        const cfg = signupSnap.exists() ? signupSnap.data() : { isOpen: true, maxUsers: 0, currentUserCount: 0 };
+
+        const isFull = typeof cfg.maxUsers === "number" && typeof cfg.currentUserCount === "number"
+          ? cfg.currentUserCount >= cfg.maxUsers
+          : false;
+
+        if (cfg.isOpen === false || isFull) {
+          // 受付停止中:今回作成されたアカウントを削除してサインアウトする
+          const rejectedUser = auth.currentUser;
+          setStatus(cfg.closedMessage || "現在、新規登録の受付を停止しています。", "error");
+          if (rejectedUser) {
+            await rejectedUser.delete().catch(() => signOut(auth));
+          }
+          loginBtn.disabled = false;
+          return;
+        }
+      }
+      // ここまで来たら、ログイン許可(既存ユーザー、または受付中の新規ユーザー)
+      setStatus("", "");
+    } catch (err) {
+      console.error(err);
+      setStatus("ログインに失敗しました。もう一度お試しください。", "error");
+      loginBtn.disabled = false;
+    }
+  });
+
+  signoutBtn.addEventListener("click", () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    loginBtn.disabled = false;
+    if (user) {
+      loginArea.classList.add("hide");
+      welcomeArea.classList.add("show");
+      userName.textContent = user.displayName || "ゲスト";
+    } else {
+      loginArea.classList.remove("hide");
+      welcomeArea.classList.remove("show");
+    }
+  });
+</script>
+
+</body>
+</html>
