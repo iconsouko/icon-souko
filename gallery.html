@@ -40,6 +40,9 @@
     z-index: 10;
   }
   header h1 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0; }
+  .header-actions { display: flex; align-items: center; gap: 14px; }
+  .manage-link { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; }
+  .manage-link:hover { text-decoration: underline; }
   .signout-link { background: none; border: none; color: var(--ink-soft); font-size: 12.5px; cursor: pointer; text-decoration: underline; }
 
   .tabs { display: flex; gap: 8px; padding: 16px 20px 0; max-width: 720px; margin: 0 auto; }
@@ -149,7 +152,10 @@
 
 <header>
   <h1>🗃️ アイコン倉庫さん</h1>
-  <button class="signout-link" id="signoutBtn">ログアウト</button>
+  <div class="header-actions">
+    <a class="manage-link" href="manage.html">ライバー・タグ管理</a>
+    <button class="signout-link" id="signoutBtn">ログアウト</button>
+  </div>
 </header>
 
 <div class="tabs">
