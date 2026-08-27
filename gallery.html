@@ -40,10 +40,26 @@
     z-index: 10;
   }
   header h1 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0; }
-  .header-actions { display: flex; align-items: center; gap: 14px; }
-  .manage-link { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; }
-  .manage-link:hover { text-decoration: underline; }
-  .signout-link { background: none; border: none; color: var(--ink-soft); font-size: 12.5px; cursor: pointer; text-decoration: underline; }
+  .menu-wrap { position: relative; }
+  .menu-toggle {
+    background: none; border: none; font-size: 22px; color: var(--ink-soft); cursor: pointer;
+    padding: 2px 10px; border-radius: 8px; line-height: 1;
+  }
+  .menu-toggle:hover { background: var(--bg); }
+  .menu-dropdown {
+    display: none; position: absolute; top: calc(100% + 8px); right: 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(58,53,47,0.18); min-width: 170px; overflow: hidden; z-index: 20;
+  }
+  .menu-dropdown.show { display: block; }
+  .menu-dropdown a, .menu-dropdown button {
+    display: block; width: 100%; text-align: left; padding: 12px 16px; font-size: 13.5px;
+    color: var(--ink); background: none; border: none; cursor: pointer; text-decoration: none;
+    font-family: 'Zen Kaku Gothic New', sans-serif; border-bottom: 1px solid var(--border);
+  }
+  .menu-dropdown a:last-child, .menu-dropdown button:last-child { border-bottom: none; }
+  .menu-dropdown a:hover, .menu-dropdown button:hover { background: var(--bg); }
+  .menu-dropdown button { color: var(--error); }
 
   .tabs { display: flex; gap: 8px; padding: 16px 20px 0; max-width: 720px; margin: 0 auto; }
   .tab-btn {
@@ -76,7 +92,7 @@
   }
   .filter-bar select {
     padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
-    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 12.5px; background: var(--surface); color: var(--ink);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--surface); color: var(--ink);
   }
   .fav-filter { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
   .filter-count { margin-left: auto; font-size: 11.5px; color: var(--ink-soft); }
@@ -110,7 +126,7 @@
   .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
   .field input[type="text"], .field input[type="month"], .field input[type="file"] {
     width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 14px; background: var(--bg);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--bg);
   }
   .field .hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
@@ -152,9 +168,12 @@
 
 <header>
   <h1>🗃️ アイコン倉庫さん</h1>
-  <div class="header-actions">
-    <a class="manage-link" href="manage.html">ライバー・タグ管理</a>
-    <button class="signout-link" id="signoutBtn">ログアウト</button>
+  <div class="menu-wrap">
+    <button class="menu-toggle" id="menuToggle" aria-label="メニュー">⋯</button>
+    <div class="menu-dropdown" id="menuDropdown">
+      <a href="manage.html">ライバー・タグ管理</a>
+      <button id="signoutBtn">ログアウト</button>
+    </div>
   </div>
 </header>
 
@@ -320,6 +339,17 @@
   });
 
   document.getElementById("signoutBtn").addEventListener("click", () => signOut(auth));
+
+  // 三点メニューの開閉
+  const menuToggle = document.getElementById("menuToggle");
+  const menuDropdown = document.getElementById("menuDropdown");
+  menuToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuDropdown.classList.toggle("show");
+  });
+  document.addEventListener("click", (e) => {
+    if (!menuDropdown.contains(e.target) && e.target !== menuToggle) menuDropdown.classList.remove("show");
+  });
 
   // タブ切り替え
   document.querySelectorAll(".tab-btn").forEach((btn) => {
