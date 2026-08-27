@@ -127,6 +127,8 @@
   .lightbox-actions button, .lightbox-actions a { flex: 1; padding: 11px; border-radius: 10px; font-size: 13.5px; cursor: pointer; text-decoration: none; }
   .btn-save-link { background: var(--accent); color: #fff; font-weight: 500; display: inline-block; }
   .btn-save-link:hover { background: var(--accent-dark); }
+  .btn-delete { background: none; border: 1px solid var(--error); color: var(--error); }
+  .btn-delete:hover { background: var(--error); color: #fff; }
 
   .celebration-overlay { display: none; position: fixed; inset: 0; background: linear-gradient(160deg, #4F6D5A, #3B5445); color: #fff; align-items: center; justify-content: center; z-index: 200; padding: 24px; }
   .celebration-overlay.show { display: flex; }
@@ -202,17 +204,36 @@
   </div>
 </div>
 
-<!-- 拡大表示(保存用) -->
+<!-- 拡大表示(保存・編集用) -->
 <div class="modal-overlay" id="lightboxModal">
   <div class="lightbox-box">
     <img id="lightboxImg" src="" alt="">
-    <div class="lightbox-info">
+    <div class="lightbox-info" id="lightboxViewMode">
       <p class="lightbox-name" id="lightboxName"></p>
       <p class="lightbox-meta" id="lightboxMeta"></p>
       <p class="lightbox-hint">画像を長押しすると、写真に保存できます</p>
       <div class="lightbox-actions">
         <a class="btn-save-link" id="lightboxDownload" download="icon.jpg">画像を保存</a>
+        <button class="btn-cancel" id="lightboxEditBtn">編集</button>
+      </div>
+      <div class="lightbox-actions" style="margin-top:8px;">
         <button class="btn-cancel" id="lightboxCloseBtn">とじる</button>
+        <button class="btn-delete" id="lightboxDeleteBtn">削除する</button>
+      </div>
+    </div>
+    <div class="lightbox-info" id="lightboxEditMode" style="display:none;">
+      <div class="field">
+        <label id="editStreamerLabel">ライバー名</label>
+        <input type="text" id="editStreamerInput" list="streamerList">
+      </div>
+      <div class="field">
+        <label>配布理由タグ(カンマ区切り)</label>
+        <input type="text" id="editTagInput" list="tagList">
+      </div>
+      <div class="modal-error" id="editError"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="editCancelBtn">キャンセル</button>
+        <button class="btn-save" id="editSaveBtn">保存する</button>
       </div>
     </div>
   </div>
@@ -233,10 +254,10 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, doc, setDoc, updateDoc, getDocs,
+    getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDocs,
     query, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
@@ -418,7 +439,10 @@
     }
   }
 
+  let lightboxIcon = null;
+
   function openLightbox(data) {
+    lightboxIcon = data;
     document.getElementById("lightboxImg").src = data.imageUrl;
     document.getElementById("lightboxName").textContent = data.streamerName || "";
     const metaParts = [];
@@ -428,9 +452,80 @@
     const dlLink = document.getElementById("lightboxDownload");
     dlLink.href = data.imageUrl;
     dlLink.download = `${data.streamerName || "icon"}.jpg`;
+    document.getElementById("lightboxViewMode").style.display = "block";
+    document.getElementById("lightboxEditMode").style.display = "none";
     document.getElementById("lightboxModal").classList.add("show");
   }
   document.getElementById("lightboxCloseBtn").addEventListener("click", () => document.getElementById("lightboxModal").classList.remove("show"));
+
+  // 編集モードへの切り替え
+  document.getElementById("lightboxEditBtn").addEventListener("click", () => {
+    const cfg = TAB_CONFIG[currentTab];
+    document.getElementById("editStreamerLabel").textContent = cfg.streamerLabel;
+    document.getElementById("editStreamerInput").value = lightboxIcon.streamerName || "";
+    document.getElementById("editTagInput").value = (lightboxIcon.reasonTags || []).join(", ");
+    document.getElementById("editError").textContent = "";
+    loadStreamerList();
+    document.getElementById("lightboxViewMode").style.display = "none";
+    document.getElementById("lightboxEditMode").style.display = "block";
+  });
+  document.getElementById("editCancelBtn").addEventListener("click", () => {
+    document.getElementById("lightboxViewMode").style.display = "block";
+    document.getElementById("lightboxEditMode").style.display = "none";
+  });
+
+  document.getElementById("editSaveBtn").addEventListener("click", async () => {
+    const cfg = TAB_CONFIG[currentTab];
+    const newStreamer = document.getElementById("editStreamerInput").value.trim();
+    const newTagsRaw = document.getElementById("editTagInput").value.trim();
+    const errorEl = document.getElementById("editError");
+    const saveBtn = document.getElementById("editSaveBtn");
+
+    if (cfg.streamerRequired && !newStreamer) {
+      errorEl.textContent = `${cfg.streamerLabel}を入力してください。`;
+      return;
+    }
+    const newTags = newTagsRaw ? newTagsRaw.split(/[,、]/).map((t) => t.trim()).filter(Boolean) : [];
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "保存中…";
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid, cfg.collectionName, lightboxIcon.id), {
+        streamerName: newStreamer,
+        reasonTags: newTags
+      });
+      if (currentTab === "received" && newStreamer) await ensureCandidate("streamers", newStreamer);
+      for (const tag of newTags) await ensureCandidate("reasonTags", tag);
+
+      document.getElementById("lightboxModal").classList.remove("show");
+      await loadIcons();
+      await loadTagList();
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent = "保存に失敗しました。もう一度お試しください。";
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存する";
+    }
+  });
+
+  // 削除
+  document.getElementById("lightboxDeleteBtn").addEventListener("click", async () => {
+    const cfg = TAB_CONFIG[currentTab];
+    const ok = confirm("このアイコンを削除します。この操作は取り消せません。よろしいですか?");
+    if (!ok) return;
+    try {
+      if (lightboxIcon.storagePath) {
+        await deleteObject(ref(storage, lightboxIcon.storagePath)).catch((e) => console.warn("画像本体の削除に失敗(続行します):", e));
+      }
+      await deleteDoc(doc(db, "users", currentUser.uid, cfg.collectionName, lightboxIcon.id));
+      document.getElementById("lightboxModal").classList.remove("show");
+      await loadIcons();
+    } catch (err) {
+      console.error(err);
+      alert("削除に失敗しました。もう一度お試しください。");
+    }
+  });
 
   document.getElementById("filterStreamer").addEventListener("change", renderGrid);
   document.getElementById("filterTag").addEventListener("change", renderGrid);
@@ -518,6 +613,7 @@
 
       await setDoc(newDocRef, {
         imageUrl,
+        storagePath,
         streamerName,
         reasonTags,
         receivedMonth,
