@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ライバー・タグの管理 | アイコン倉庫さん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3EEE4; --surface: #FFFFFF; --ink: #3A352F; --ink-soft: #6B6259;
+    --accent: #4F6D5A; --accent-dark: #3B5445; --tag: #C98A3A; --border: #E3DACB; --error: #B4544A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Zen Kaku Gothic New', sans-serif; color: var(--ink); min-height: 100vh; }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px;
+    display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 16px; margin: 0; }
+  .back-link { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; }
+  .back-link:hover { text-decoration: underline; }
+
+  .tabs { display: flex; gap: 8px; padding: 16px 20px 0; max-width: 640px; margin: 0 auto; }
+  .tab-btn {
+    flex: 1; padding: 10px; border-radius: 10px 10px 0 0; border: 1px solid var(--border); border-bottom: none;
+    background: #EDE6D8; color: var(--ink-soft); font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .tab-btn.active { background: var(--surface); color: var(--accent-dark); font-weight: 700; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 20px; background: var(--surface); border: 1px solid var(--border); min-height: 60vh; }
+
+  .search-box { margin-bottom: 16px; }
+  .search-box input {
+    width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 14px; background: var(--bg);
+  }
+
+  .item-row {
+    display: flex; align-items: center; gap: 10px; padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-name { font-weight: 500; font-size: 14.5px; }
+  .item-count { font-size: 11.5px; color: var(--ink-soft); }
+  .item-main { flex: 1; min-width: 0; }
+  .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .item-actions button {
+    padding: 6px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer;
+  }
+  .btn-edit-sm { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
+  .btn-delete-sm { background: none; border: 1px solid var(--error); color: var(--error); }
+  .btn-delete-sm:hover { background: var(--error); color: #fff; }
+
+  .rename-form { display: flex; gap: 8px; flex: 1; align-items: center; }
+  .rename-form input {
+    flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    font-size: 13.5px; background: var(--bg);
+  }
+  .rename-form button { padding: 7px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer; }
+  .btn-save-sm { background: var(--accent); border: none; color: #fff; }
+  .btn-cancel-sm { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 13.5px; }
+
+  /* 削除確認モーダル(ライバー用・厳重確認) */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.5); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border-radius: 16px; padding: 26px 22px; max-width: 360px; width: 100%; }
+  .modal h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 16px; margin: 0 0 10px; color: var(--error); }
+  .modal p { font-size: 13.5px; line-height: 1.7; margin: 0 0 14px; }
+  .modal input {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    font-size: 14px; background: var(--bg); margin-bottom: 14px;
+  }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button { flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; cursor: pointer; }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
+  .btn-danger { background: var(--error); border: none; color: #fff; font-weight: 500; }
+  .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--accent-dark); color: #fff; padding: 10px 20px; border-radius: 10px;
+    font-size: 13px; z-index: 300; display: none;
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="gallery.html">← ギャラリーへ戻る</a>
+  <h1>ライバー・タグの管理</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tabStreamers" data-tab="streamers">ライバー</button>
+  <button class="tab-btn" id="tabTags" data-tab="tags">タグ</button>
+</div>
+
+<main>
+  <div class="search-box"><input type="text" id="searchInput" placeholder="名前で検索…"></div>
+  <div id="listArea"></div>
+  <div class="empty" id="emptyMsg" style="display:none;"></div>
+</main>
+
+<!-- ライバー削除:厳重確認モーダル -->
+<div class="modal-overlay" id="deleteStreamerModal">
+  <div class="modal">
+    <h2>ライバーを削除しますか?</h2>
+    <p id="deleteStreamerDesc"></p>
+    <p>よろしければ、下の欄にライバー名(<strong id="deleteStreamerNameEcho"></strong>)を正確に入力してください。</p>
+    <input type="text" id="deleteStreamerConfirmInput" placeholder="ライバー名を入力">
+    <div class="modal-actions">
+      <button class="btn-cancel" id="deleteStreamerCancelBtn">キャンセル</button>
+      <button class="btn-danger" id="deleteStreamerConfirmBtn" disabled>削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- タグ削除:通常確認モーダル -->
+<div class="modal-overlay" id="deleteTagModal">
+  <div class="modal">
+    <h2>タグを削除しますか?</h2>
+    <p id="deleteTagDesc"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="deleteTagCancelBtn">キャンセル</button>
+      <button class="btn-danger" id="deleteTagConfirmBtn">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDocs, deleteDoc, updateDoc, setDoc,
+    query, where, writeBatch, getCountFromServer
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
+    authDomain: "icon-souko-b2471.firebaseapp.com",
+    projectId: "icon-souko-b2471",
+    storageBucket: "icon-souko-b2471.firebasestorage.app",
+    messagingSenderId: "638657050327",
+    appId: "1:638657050327:web:9b1f5ac8345c6064326292"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  let currentUser = null;
+  let currentTab = "streamers"; // streamers | tags
+  let candidates = []; // {id, label, normalizedLabel, count}
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
+    currentUser = user;
+    loadCandidates();
+  });
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentTab = btn.dataset.tab;
+      document.getElementById("searchInput").value = "";
+      loadCandidates();
+    });
+  });
+
+  document.getElementById("searchInput").addEventListener("input", renderList);
+
+  function normalize(str) { return str.trim().toLowerCase(); }
+  function subcollectionName() { return currentTab === "streamers" ? "streamers" : "reasonTags"; }
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  async function countIconsForStreamer(name) {
+    const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), where("streamerName", "==", name));
+    const snap = await getCountFromServer(q);
+    return snap.data().count;
+  }
+  async function countIconsForTag(tag) {
+    let total = 0;
+    for (const col of ["receivedIcons", "createdIcons"]) {
+      const q = query(collection(db, "users", currentUser.uid, col), where("reasonTags", "array-contains", tag));
+      const snap = await getCountFromServer(q);
+      total += snap.data().count;
+    }
+    return total;
+  }
+
+  async function loadCandidates() {
+    const snap = await getDocs(collection(db, "users", currentUser.uid, subcollectionName()));
+    candidates = snap.docs.map((d) => ({ id: d.id, ...d.data(), count: null }));
+    renderList();
+    // 件数は後追いで非同期に取得(体感速度を優先)
+    candidates.forEach(async (c) => {
+      c.count = currentTab === "streamers" ? await countIconsForStreamer(c.label) : await countIconsForTag(c.label);
+      updateCountDisplay(c.id, c.count);
+    });
+  }
+
+  function updateCountDisplay(id, count) {
+    const el = document.querySelector(`.item-count[data-id="${id}"]`);
+    if (el) el.textContent = `${count}枚のアイコンで使用中`;
+  }
+
+  function renderList() {
+    const keyword = normalize(document.getElementById("searchInput").value);
+    const listArea = document.getElementById("listArea");
+    const emptyMsg = document.getElementById("emptyMsg");
+    const filtered = candidates
+      .filter((c) => normalize(c.label).includes(keyword))
+      .sort((a, b) => a.label.localeCompare(b.label, "ja"));
+
+    listArea.innerHTML = "";
+    if (filtered.length === 0) {
+      emptyMsg.style.display = "block";
+      emptyMsg.textContent = candidates.length === 0
+        ? (currentTab === "streamers" ? "まだライバーが登録されていません。" : "まだタグが登録されていません。")
+        : "該当する項目が見つかりませんでした。";
+      return;
+    }
+    emptyMsg.style.display = "none";
+
+    filtered.forEach((c) => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.id = `row-${c.id}`;
+      row.innerHTML = `
+        <div class="item-main">
+          <div class="item-name">${c.label}</div>
+          <div class="item-count" data-id="${c.id}">${c.count === null ? "件数を確認中…" : c.count + "枚のアイコンで使用中"}</div>
+        </div>
+        <div class="item-actions">
+          <button class="btn-edit-sm">編集</button>
+          <button class="btn-delete-sm">削除</button>
+        </div>`;
+      row.querySelector(".btn-edit-sm").addEventListener("click", () => showRenameForm(row, c));
+      row.querySelector(".btn-delete-sm").addEventListener("click", () => {
+        if (currentTab === "streamers") openDeleteStreamerModal(c);
+        else openDeleteTagModal(c);
+      });
+      listArea.appendChild(row);
+    });
+  }
+
+  function showRenameForm(row, c) {
+    row.innerHTML = `
+      <div class="rename-form">
+        <input type="text" value="${c.label}" id="renameInput-${c.id}">
+        <button class="btn-save-sm">保存</button>
+        <button class="btn-cancel-sm">キャンセル</button>
+      </div>`;
+    row.querySelector(".btn-cancel-sm").addEventListener("click", renderList);
+    row.querySelector(".btn-save-sm").addEventListener("click", async () => {
+      const newLabel = document.getElementById(`renameInput-${c.id}`).value.trim();
+      if (!newLabel || newLabel === c.label) { renderList(); return; }
+      row.querySelector(".btn-save-sm").disabled = true;
+      try {
+        if (currentTab === "streamers") await renameStreamer(c, newLabel);
+        else await renameTag(c, newLabel);
+        showToast("名前を変更しました");
+        await loadCandidates();
+      } catch (err) {
+        console.error(err);
+        alert("変更に失敗しました。もう一度お試しください。");
+        renderList();
+      }
+    });
+  }
+
+  // ライバー名のリネーム(該当アイコン全件+候補ドキュメントを更新。既存の別ライバーと同名になる場合は統合)
+  async function renameStreamer(c, newLabel) {
+    const normNew = normalize(newLabel);
+    const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), where("streamerName", "==", c.label));
+    const snap = await getDocs(q);
+    await batchUpdate(snap.docs, (d) => ({ streamerName: newLabel }));
+    await mergeOrRenameCandidate("streamers", c, newLabel, normNew);
+  }
+
+  // タグ名のリネーム(該当アイコン全件の配列内の値を置き換え、候補ドキュメントを更新)
+  async function renameTag(c, newLabel) {
+    const normNew = normalize(newLabel);
+    for (const col of ["receivedIcons", "createdIcons"]) {
+      const q = query(collection(db, "users", currentUser.uid, col), where("reasonTags", "array-contains", c.label));
+      const snap = await getDocs(q);
+      await batchUpdate(snap.docs, (d) => {
+        const arr = (d.data().reasonTags || []).map((t) => (t === c.label ? newLabel : t));
+        return { reasonTags: [...new Set(arr)] };
+      });
+    }
+    await mergeOrRenameCandidate("reasonTags", c, newLabel, normNew);
+  }
+
+  async function mergeOrRenameCandidate(subcol, c, newLabel, normNew) {
+    const snap = await getDocs(collection(db, "users", currentUser.uid, subcol));
+    const other = snap.docs.find((d) => d.id !== c.id && normalize(d.data().label) === normNew);
+    if (other) {
+      // 既存の別項目と同名になったので、こちらの候補は削除して統合する
+      await deleteDoc(doc(db, "users", currentUser.uid, subcol, c.id));
+    } else {
+      await updateDoc(doc(db, "users", currentUser.uid, subcol, c.id), { label: newLabel, normalizedLabel: normNew });
+    }
+  }
+
+  async function batchUpdate(docs, dataFn) {
+    const chunkSize = 400;
+    for (let i = 0; i < docs.length; i += chunkSize) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + chunkSize).forEach((d) => batch.update(d.ref, dataFn(d)));
+      await batch.commit();
+    }
+  }
+
+  // --- ライバー削除(厳重確認) ---
+  let pendingDeleteStreamer = null;
+  async function openDeleteStreamerModal(c) {
+    pendingDeleteStreamer = c;
+    const count = c.count ?? await countIconsForStreamer(c.label);
+    document.getElementById("deleteStreamerDesc").textContent =
+      `「${c.label}」を削除すると、このライバーの登録済みアイコン ${count}枚 が全て完全に削除されます。この操作は取り消せません。`;
+    document.getElementById("deleteStreamerNameEcho").textContent = c.label;
+    const input = document.getElementById("deleteStreamerConfirmInput");
+    input.value = "";
+    document.getElementById("deleteStreamerConfirmBtn").disabled = true;
+    document.getElementById("deleteStreamerModal").classList.add("show");
+  }
+  document.getElementById("deleteStreamerConfirmInput").addEventListener("input", (e) => {
+    document.getElementById("deleteStreamerConfirmBtn").disabled = e.target.value !== pendingDeleteStreamer?.label;
+  });
+  document.getElementById("deleteStreamerCancelBtn").addEventListener("click", () => {
+    document.getElementById("deleteStreamerModal").classList.remove("show");
+  });
+  document.getElementById("deleteStreamerConfirmBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("deleteStreamerConfirmBtn");
+    btn.disabled = true;
+    btn.textContent = "削除中…";
+    try {
+      const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), where("streamerName", "==", pendingDeleteStreamer.label));
+      const snap = await getDocs(q);
+      // Storage側の画像を削除
+      await Promise.all(snap.docs.map((d) => {
+        const data = d.data();
+        if (data.storagePath) return deleteObject(ref(storage, data.storagePath)).catch(() => {});
+        return Promise.resolve();
+      }));
+      // Firestoreドキュメントを削除
+      const chunkSize = 400;
+      const docsArr = snap.docs;
+      for (let i = 0; i < docsArr.length; i += chunkSize) {
+        const batch = writeBatch(db);
+        docsArr.slice(i, i + chunkSize).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+      // 候補ドキュメントを削除
+      await deleteDoc(doc(db, "users", currentUser.uid, "streamers", pendingDeleteStreamer.id));
+
+      document.getElementById("deleteStreamerModal").classList.remove("show");
+      showToast("ライバーとアイコンを削除しました");
+      await loadCandidates();
+    } catch (err) {
+      console.error(err);
+      alert("削除に失敗しました。もう一度お試しください。");
+      btn.textContent = "削除する";
+    }
+  });
+
+  // --- タグ削除(通常確認) ---
+  let pendingDeleteTag = null;
+  async function openDeleteTagModal(c) {
+    pendingDeleteTag = c;
+    const count = c.count ?? await countIconsForTag(c.label);
+    document.getElementById("deleteTagDesc").textContent =
+      `「${c.label}」タグを削除します。このタグが付いたアイコン ${count}枚 からタグだけが外れます(アイコン自体は削除されません)。`;
+    document.getElementById("deleteTagModal").classList.add("show");
+  }
+  document.getElementById("deleteTagCancelBtn").addEventListener("click", () => {
+    document.getElementById("deleteTagModal").classList.remove("show");
+  });
+  document.getElementById("deleteTagConfirmBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("deleteTagConfirmBtn");
+    btn.disabled = true;
+    btn.textContent = "削除中…";
+    try {
+      for (const col of ["receivedIcons", "createdIcons"]) {
+        const q = query(collection(db, "users", currentUser.uid, col), where("reasonTags", "array-contains", pendingDeleteTag.label));
+        const snap = await getDocs(q);
+        await batchUpdate(snap.docs, (d) => ({
+          reasonTags: (d.data().reasonTags || []).filter((t) => t !== pendingDeleteTag.label)
+        }));
+      }
+      await deleteDoc(doc(db, "users", currentUser.uid, "reasonTags", pendingDeleteTag.id));
+      document.getElementById("deleteTagModal").classList.remove("show");
+      showToast("タグを削除しました");
+      await loadCandidates();
+    } catch (err) {
+      console.error(err);
+      alert("削除に失敗しました。もう一度お試しください。");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "削除する";
+    }
+  });
+</script>
+
+</body>
+</html>
