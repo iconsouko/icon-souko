@@ -117,7 +117,14 @@
   .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
   .modal-error { color: var(--error); font-size: 12.5px; margin-top: 10px; }
 
-  .lightbox-box { background: var(--surface); border-radius: 16px; padding: 16px; max-width: 380px; width: 100%; text-align: center; }
+  .lightbox-box { background: var(--surface); border-radius: 16px; padding: 16px; max-width: 380px; width: 100%; text-align: center; position: relative; }
+  .lightbox-close-x {
+    position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: rgba(58,53,47,0.08); color: var(--ink-soft);
+    font-size: 18px; line-height: 1; cursor: pointer; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lightbox-close-x:hover { background: rgba(58,53,47,0.16); }
   .lightbox-box img { width: 100%; max-height: 55vh; object-fit: contain; border-radius: 10px; background: var(--bg); }
   .lightbox-info { padding-top: 14px; }
   .lightbox-name { font-family: 'Zen Maru Gothic', sans-serif; font-weight: 700; font-size: 16px; margin: 0 0 4px; }
@@ -125,8 +132,6 @@
   .lightbox-hint { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 16px; }
   .lightbox-actions { display: flex; gap: 10px; }
   .lightbox-actions button, .lightbox-actions a { flex: 1; padding: 11px; border-radius: 10px; font-size: 13.5px; cursor: pointer; text-decoration: none; }
-  .btn-save-link { background: var(--accent); color: #fff; font-weight: 500; display: inline-block; }
-  .btn-save-link:hover { background: var(--accent-dark); }
   .btn-delete { background: none; border: 1px solid var(--error); color: var(--error); }
   .btn-delete:hover { background: var(--error); color: #fff; }
 
@@ -207,17 +212,14 @@
 <!-- 拡大表示(保存・編集用) -->
 <div class="modal-overlay" id="lightboxModal">
   <div class="lightbox-box">
+    <button class="lightbox-close-x" id="lightboxCloseBtn" aria-label="閉じる">×</button>
     <img id="lightboxImg" src="" alt="">
     <div class="lightbox-info" id="lightboxViewMode">
       <p class="lightbox-name" id="lightboxName"></p>
       <p class="lightbox-meta" id="lightboxMeta"></p>
-      <p class="lightbox-hint">画像を長押しすると、写真に保存できます</p>
+      <p class="lightbox-hint">画像を長押し(パソコンは右クリック)で保存できます</p>
       <div class="lightbox-actions">
-        <a class="btn-save-link" id="lightboxDownload" download="icon.jpg">画像を保存</a>
         <button class="btn-cancel" id="lightboxEditBtn">編集</button>
-      </div>
-      <div class="lightbox-actions" style="margin-top:8px;">
-        <button class="btn-cancel" id="lightboxCloseBtn">とじる</button>
         <button class="btn-delete" id="lightboxDeleteBtn">削除する</button>
       </div>
     </div>
@@ -449,9 +451,6 @@
     if (data.receivedMonth) metaParts.push(data.receivedMonth.replace("-", "年") + "月");
     if (data.reasonTags && data.reasonTags.length) metaParts.push(data.reasonTags.join(" / "));
     document.getElementById("lightboxMeta").textContent = metaParts.join("・");
-    const dlLink = document.getElementById("lightboxDownload");
-    dlLink.href = data.imageUrl;
-    dlLink.download = `${data.streamerName || "icon"}.jpg`;
     document.getElementById("lightboxViewMode").style.display = "block";
     document.getElementById("lightboxEditMode").style.display = "none";
     document.getElementById("lightboxModal").classList.add("show");
