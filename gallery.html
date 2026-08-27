@@ -39,286 +39,103 @@
     top: 0;
     z-index: 10;
   }
-  header h1 {
-    font-family: 'Zen Maru Gothic', sans-serif;
-    font-size: 17px;
-    margin: 0;
-  }
-  .signout-link {
-    background: none;
-    border: none;
-    color: var(--ink-soft);
-    font-size: 12.5px;
-    cursor: pointer;
-    text-decoration: underline;
-  }
+  header h1 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0; }
+  .signout-link { background: none; border: none; color: var(--ink-soft); font-size: 12.5px; cursor: pointer; text-decoration: underline; }
 
-  .tabs {
-    display: flex;
-    gap: 8px;
-    padding: 16px 20px 0;
-    max-width: 720px;
-    margin: 0 auto;
-  }
+  .tabs { display: flex; gap: 8px; padding: 16px 20px 0; max-width: 720px; margin: 0 auto; }
   .tab-btn {
-    flex: 1;
-    padding: 10px;
-    border-radius: 10px 10px 0 0;
-    border: 1px solid var(--border);
-    border-bottom: none;
-    background: #EDE6D8;
-    color: var(--ink-soft);
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
+    flex: 1; padding: 10px; border-radius: 10px 10px 0 0;
+    border: 1px solid var(--border); border-bottom: none;
+    background: #EDE6D8; color: var(--ink-soft);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer;
   }
   .tab-btn.active { background: var(--surface); color: var(--accent-dark); font-weight: 700; }
 
-  main {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    min-height: 60vh;
-  }
+  main { max-width: 720px; margin: 0 auto; padding: 20px; background: var(--surface); border: 1px solid var(--border); min-height: 60vh; }
 
-  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
   .upload-btn {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 18px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 10px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
   }
   .upload-btn:hover { background: var(--accent-dark); }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 12px;
+  .col-toggle { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+  .col-toggle button {
+    border: none; background: none; padding: 5px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--ink-soft);
   }
-  .icon-cell {
-    aspect-ratio: 1;
-    border-radius: 12px;
-    overflow: hidden;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    position: relative;
+  .col-toggle button.active { background: var(--surface); color: var(--accent-dark); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  .filter-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    margin-bottom: 16px; padding: 10px 12px; background: var(--bg);
+    border-radius: 10px; border: 1px solid var(--border);
   }
+  .filter-bar select {
+    padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 12.5px; background: var(--surface); color: var(--ink);
+  }
+  .fav-filter { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
+  .filter-count { margin-left: auto; font-size: 11.5px; color: var(--ink-soft); }
+
+  .grid { display: grid; gap: 12px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .icon-cell { aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--bg); border: 1px solid var(--border); position: relative; }
   .icon-cell img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
   .icon-cell .label {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(58,53,47,0.65);
-    color: #fff;
-    font-size: 10.5px;
-    padding: 3px 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    position: absolute; bottom: 0; left: 0; right: 0; background: rgba(58,53,47,0.65); color: #fff;
+    font-size: 10.5px; padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .fav-btn {
-    position: absolute; top: 5px; right: 5px;
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.85);
-    font-size: 13px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    line-height: 1;
-    padding: 0;
+    position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%;
+    border: none; background: rgba(255,255,255,0.85); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0;
   }
   .fav-btn.is-fav { background: var(--tag); color: #fff; }
 
-  .filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding: 10px 12px;
-    background: var(--bg);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-  }
-  .filter-bar select {
-    padding: 7px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-size: 12.5px;
-    background: var(--surface);
-    color: var(--ink);
-  }
-  .fav-filter {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
-    color: var(--ink-soft);
-    cursor: pointer;
-  }
-  .filter-count {
-    margin-left: auto;
-    font-size: 11.5px;
-    color: var(--ink-soft);
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--ink-soft);
-  }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
   .empty-state p { font-size: 14px; line-height: 1.8; }
 
-  .placeholder-tab { text-align: center; padding: 60px 20px; color: var(--ink-soft); font-size: 14px; }
-
-  /* モーダル共通 */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(58,53,47,0.45);
-    align-items: center; justify-content: center;
-    padding: 20px;
-    z-index: 100;
-  }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.45); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
   .modal-overlay.show { display: flex; }
-  .modal {
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 28px 24px;
-    max-width: 380px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .modal h2 {
-    font-family: 'Zen Maru Gothic', sans-serif;
-    font-size: 17px;
-    margin: 0 0 18px;
-  }
+  .modal { background: var(--surface); border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0 0 18px; }
   .field { margin-bottom: 16px; text-align: left; }
   .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
   .field input[type="text"], .field input[type="month"], .field input[type="file"] {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-size: 14px;
-    background: var(--bg);
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 14px; background: var(--bg);
   }
   .field .hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-  .modal-actions button {
-    flex: 1;
-    padding: 11px;
-    border-radius: 10px;
-    font-size: 14px;
-    cursor: pointer;
-  }
+  .modal-actions button { flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; cursor: pointer; }
   .btn-cancel { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
   .btn-save { background: var(--accent); border: none; color: #fff; font-weight: 500; }
   .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
   .modal-error { color: var(--error); font-size: 12.5px; margin-top: 10px; }
 
-  /* 拡大表示(ライトボックス) */
-  .lightbox-box {
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 16px;
-    max-width: 380px;
-    width: 100%;
-    text-align: center;
-  }
-  .lightbox-box img {
-    width: 100%;
-    max-height: 55vh;
-    object-fit: contain;
-    border-radius: 10px;
-    background: var(--bg);
-  }
+  .lightbox-box { background: var(--surface); border-radius: 16px; padding: 16px; max-width: 380px; width: 100%; text-align: center; }
+  .lightbox-box img { width: 100%; max-height: 55vh; object-fit: contain; border-radius: 10px; background: var(--bg); }
   .lightbox-info { padding-top: 14px; }
-  .lightbox-name {
-    font-family: 'Zen Maru Gothic', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
-    margin: 0 0 4px;
-  }
+  .lightbox-name { font-family: 'Zen Maru Gothic', sans-serif; font-weight: 700; font-size: 16px; margin: 0 0 4px; }
   .lightbox-meta { font-size: 12px; color: var(--ink-soft); margin: 0 0 10px; }
   .lightbox-hint { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 16px; }
   .lightbox-actions { display: flex; gap: 10px; }
-  .lightbox-actions button, .lightbox-actions a {
-    flex: 1;
-    padding: 11px;
-    border-radius: 10px;
-    font-size: 13.5px;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .btn-save-link {
-    background: var(--accent);
-    color: #fff;
-    font-weight: 500;
-    display: inline-block;
-  }
+  .lightbox-actions button, .lightbox-actions a { flex: 1; padding: 11px; border-radius: 10px; font-size: 13.5px; cursor: pointer; text-decoration: none; }
+  .btn-save-link { background: var(--accent); color: #fff; font-weight: 500; display: inline-block; }
   .btn-save-link:hover { background: var(--accent-dark); }
 
-  /* アップロード演出(シェア想定・全画面) */
-  .celebration-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: linear-gradient(160deg, #4F6D5A, #3B5445);
-    color: #fff;
-    align-items: center; justify-content: center;
-    z-index: 200;
-    padding: 24px;
-  }
+  .celebration-overlay { display: none; position: fixed; inset: 0; background: linear-gradient(160deg, #4F6D5A, #3B5445); color: #fff; align-items: center; justify-content: center; z-index: 200; padding: 24px; }
   .celebration-overlay.show { display: flex; }
-  .celebration-card {
-    text-align: center;
-    max-width: 340px;
-  }
-  .celebration-card .icon-preview {
-    width: 140px; height: 140px;
-    border-radius: 20px;
-    object-fit: cover;
-    margin: 0 auto 24px;
-    border: 4px solid rgba(255,255,255,0.9);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-  }
-  .celebration-card .big-msg {
-    font-family: 'Zen Maru Gothic', sans-serif;
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0 0 8px;
-    line-height: 1.5;
-  }
-  .celebration-card .sub-msg {
-    font-size: 13px;
-    opacity: 0.85;
-    margin: 0 0 28px;
-  }
-  .celebration-card .brand {
-    font-family: 'Zen Maru Gothic', sans-serif;
-    font-size: 12px;
-    opacity: 0.7;
-    margin-bottom: 20px;
-  }
-  .celebration-close {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.4);
-    color: #fff;
-    padding: 10px 24px;
-    border-radius: 10px;
-    font-size: 14px;
-    cursor: pointer;
-  }
+  .celebration-card { text-align: center; max-width: 340px; }
+  .celebration-card .icon-preview { width: 140px; height: 140px; border-radius: 20px; object-fit: cover; margin: 0 auto 24px; border: 4px solid rgba(255,255,255,0.9); box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+  .celebration-card .big-msg { font-family: 'Zen Maru Gothic', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 8px; line-height: 1.5; }
+  .celebration-card .sub-msg { font-size: 13px; opacity: 0.85; margin: 0 0 28px; }
+  .celebration-card .brand { font-family: 'Zen Maru Gothic', sans-serif; font-size: 12px; opacity: 0.7; margin-bottom: 20px; }
+  .celebration-close { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 24px; border-radius: 10px; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -329,39 +146,41 @@
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" id="tabReceived">もらったアイコン</button>
-  <button class="tab-btn" id="tabCreated">つくったアイコン</button>
+  <button class="tab-btn active" id="tabReceived" data-tab="received">もらったアイコン</button>
+  <button class="tab-btn" id="tabCreated" data-tab="created">つくったアイコン</button>
 </div>
 
 <main>
-  <div id="receivedView">
-    <div class="toolbar"><button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button></div>
-    <div class="filter-bar">
-      <select id="filterStreamer"><option value="">ライバー:すべて</option></select>
-      <select id="filterTag"><option value="">タグ:すべて</option></select>
-      <label class="fav-filter"><input type="checkbox" id="filterFavOnly"> お気に入りのみ</label>
-      <span class="filter-count" id="filterCount"></span>
-    </div>
-    <div class="grid" id="grid"></div>
-    <div class="empty-state" id="emptyState" style="display:none;">
-      <p>まだアイコンが登録されていません。<br>推しからもらったアイコンを、ここに集めていきましょう。</p>
+  <div class="toolbar">
+    <button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button>
+    <div class="col-toggle" id="colToggle">
+      <button data-cols="2">2列</button>
+      <button data-cols="3">3列</button>
+      <button data-cols="4">4列</button>
     </div>
   </div>
-  <div id="createdView" style="display:none;">
-    <div class="placeholder-tab">「つくったアイコン」機能は準備中です。<br>もうしばらくお待ちください。</div>
+  <div class="filter-bar">
+    <select id="filterStreamer"><option value="">ライバー:すべて</option></select>
+    <select id="filterTag"><option value="">タグ:すべて</option></select>
+    <label class="fav-filter"><input type="checkbox" id="filterFavOnly"> お気に入りのみ</label>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+  <div class="grid cols-2" id="grid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <p id="emptyStateText"></p>
   </div>
 </main>
 
 <!-- アップロードモーダル -->
 <div class="modal-overlay" id="uploadModal">
   <div class="modal">
-    <h2>アイコンを追加</h2>
+    <h2 id="modalTitle">アイコンを追加</h2>
     <div class="field">
       <label for="fileInput">画像ファイル</label>
       <input type="file" id="fileInput" accept="image/*">
     </div>
     <div class="field">
-      <label for="streamerInput">ライバー名</label>
+      <label for="streamerInput" id="streamerLabel">ライバー名</label>
       <input type="text" id="streamerInput" list="streamerList" placeholder="例:れいかさん">
       <datalist id="streamerList"></datalist>
     </div>
@@ -372,7 +191,7 @@
       <div class="hint">「毎月」「誕生日記念」など、あとで絞り込みに使えます</div>
     </div>
     <div class="field">
-      <label for="monthInput">受け取った月</label>
+      <label for="monthInput" id="monthLabel">受け取った月</label>
       <input type="month" id="monthInput">
     </div>
     <div class="modal-error" id="modalError"></div>
@@ -414,12 +233,10 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, doc, setDoc, updateDoc, getDocs, getDoc,
-    query, where, orderBy, serverTimestamp
+    getFirestore, collection, doc, setDoc, updateDoc, getDocs,
+    query, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import {
-    getStorage, ref, uploadBytes, getDownloadURL
-  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
@@ -437,44 +254,98 @@
 
   let currentUser = null;
 
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      window.location.href = "index.html";
-      return;
+  // タブごとの設定(この違いだけで「もらった」「つくった」を両方まかなう)
+  const TAB_CONFIG = {
+    received: {
+      collectionName: "receivedIcons",
+      streamerLabel: "ライバー名",
+      streamerPlaceholder: "例:れいかさん",
+      streamerRequired: true,
+      monthLabel: "受け取った月",
+      modalTitle: "もらったアイコンを追加",
+      emptyText: "まだアイコンが登録されていません。<br>推しからもらったアイコンを、ここに集めていきましょう。",
+      celebrationVerb: "さんのアイコン",
+    },
+    created: {
+      collectionName: "createdIcons",
+      streamerLabel: "メモ(任意・エピソードなど)",
+      streamerPlaceholder: "例:○○コラボ配信の記念アイコン",
+      streamerRequired: false,
+      monthLabel: "作成した月",
+      modalTitle: "つくったアイコンを追加",
+      emptyText: "まだ記録がありません。<br>今まで作ってきたアイコンを、ここにアーカイブしていきましょう。",
+      celebrationVerb: "つくったアイコン",
     }
+  };
+
+  let currentTab = "received";
+  let allIcons = [];
+  let currentCols = parseInt(localStorage.getItem("iconSoukoCols") || "2", 10);
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
     currentUser = user;
-    loadReceivedIcons();
-    loadStreamerList();
+    setColumns(currentCols);
     loadTagList();
+    loadIcons();
   });
 
   document.getElementById("signoutBtn").addEventListener("click", () => signOut(auth));
 
   // タブ切り替え
-  const tabReceived = document.getElementById("tabReceived");
-  const tabCreated = document.getElementById("tabCreated");
-  tabReceived.addEventListener("click", () => {
-    tabReceived.classList.add("active");
-    tabCreated.classList.remove("active");
-    document.getElementById("receivedView").style.display = "block";
-    document.getElementById("createdView").style.display = "none";
-  });
-  tabCreated.addEventListener("click", () => {
-    tabCreated.classList.add("active");
-    tabReceived.classList.remove("active");
-    document.getElementById("createdView").style.display = "block";
-    document.getElementById("receivedView").style.display = "none";
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentTab = btn.dataset.tab;
+      document.getElementById("filterStreamer").style.display = currentTab === "received" ? "" : "none";
+      loadIcons();
+    });
   });
 
-  // ギャラリー読み込み(全件を一度取得し、以降はクライアント側で絞り込む)
-  let allIcons = [];
+  // 列数切り替え
+  function setColumns(n) {
+    currentCols = n;
+    document.getElementById("grid").className = "grid cols-" + n;
+    document.querySelectorAll("#colToggle button").forEach((b) => {
+      b.classList.toggle("active", parseInt(b.dataset.cols, 10) === n);
+    });
+    localStorage.setItem("iconSoukoCols", String(n));
+  }
+  document.querySelectorAll("#colToggle button").forEach((b) => {
+    b.addEventListener("click", () => setColumns(parseInt(b.dataset.cols, 10)));
+  });
 
-  async function loadReceivedIcons() {
-    const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), orderBy("createdAt", "desc"));
+  // ギャラリー読み込み
+  async function loadIcons() {
+    const cfg = TAB_CONFIG[currentTab];
+    const q = query(collection(db, "users", currentUser.uid, cfg.collectionName), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
     allIcons = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    document.getElementById("emptyStateText").innerHTML = cfg.emptyText;
     populateFilterOptions();
     renderGrid();
+  }
+
+  async function loadStreamerList() {
+    const listEl = document.getElementById("streamerList");
+    listEl.innerHTML = "";
+    const snap = await getDocs(collection(db, "users", currentUser.uid, "streamers"));
+    snap.forEach((d) => {
+      const opt = document.createElement("option");
+      opt.value = d.data().label;
+      listEl.appendChild(opt);
+    });
+  }
+  async function loadTagList() {
+    const listEl = document.getElementById("tagList");
+    listEl.innerHTML = "";
+    const snap = await getDocs(collection(db, "users", currentUser.uid, "reasonTags"));
+    snap.forEach((d) => {
+      const opt = document.createElement("option");
+      opt.value = d.data().label;
+      listEl.appendChild(opt);
+    });
   }
 
   function populateFilterOptions() {
@@ -486,10 +357,8 @@
     const streamers = [...new Set(allIcons.map((i) => i.streamerName).filter(Boolean))].sort();
     const tags = [...new Set(allIcons.flatMap((i) => i.reasonTags || []))].sort();
 
-    streamerSel.innerHTML = '<option value="">ライバー:すべて</option>' +
-      streamers.map((s) => `<option value="${s}">${s}</option>`).join("");
-    tagSel.innerHTML = '<option value="">タグ:すべて</option>' +
-      tags.map((t) => `<option value="${t}">${t}</option>`).join("");
+    streamerSel.innerHTML = '<option value="">ライバー:すべて</option>' + streamers.map((s) => `<option value="${s}">${s}</option>`).join("");
+    tagSel.innerHTML = '<option value="">タグ:すべて</option>' + tags.map((t) => `<option value="${t}">${t}</option>`).join("");
 
     streamerSel.value = streamers.includes(prevStreamer) ? prevStreamer : "";
     tagSel.value = tags.includes(prevTag) ? prevTag : "";
@@ -499,7 +368,7 @@
     const grid = document.getElementById("grid");
     const emptyState = document.getElementById("emptyState");
     const filterCount = document.getElementById("filterCount");
-    const streamerFilter = document.getElementById("filterStreamer").value;
+    const streamerFilter = currentTab === "received" ? document.getElementById("filterStreamer").value : "";
     const tagFilter = document.getElementById("filterTag").value;
     const favOnly = document.getElementById("filterFavOnly").checked;
 
@@ -525,15 +394,28 @@
       cell.className = "icon-cell";
       cell.innerHTML = `
         <img src="${data.imageUrl}" alt="${data.streamerName || ""}" loading="lazy">
-        <button class="fav-btn${data.isFavorite ? " is-fav" : ""}" data-id="${data.id}" aria-label="お気に入り切り替え">${data.isFavorite ? "★" : "☆"}</button>
+        <button class="fav-btn${data.isFavorite ? " is-fav" : ""}" aria-label="お気に入り切り替え">${data.isFavorite ? "★" : "☆"}</button>
         <div class="label">${data.streamerName || ""}</div>`;
-      cell.querySelector(".fav-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleFavorite(data.id);
-      });
+      cell.querySelector(".fav-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleFavorite(data.id); });
       cell.querySelector("img").addEventListener("click", () => openLightbox(data));
       grid.appendChild(cell);
     });
+  }
+
+  async function toggleFavorite(iconId) {
+    const cfg = TAB_CONFIG[currentTab];
+    const icon = allIcons.find((i) => i.id === iconId);
+    if (!icon) return;
+    const newVal = !icon.isFavorite;
+    icon.isFavorite = newVal;
+    renderGrid();
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid, cfg.collectionName, iconId), { isFavorite: newVal });
+    } catch (err) {
+      console.error(err);
+      icon.isFavorite = !newVal;
+      renderGrid();
+    }
   }
 
   function openLightbox(data) {
@@ -548,64 +430,30 @@
     dlLink.download = `${data.streamerName || "icon"}.jpg`;
     document.getElementById("lightboxModal").classList.add("show");
   }
-  document.getElementById("lightboxCloseBtn").addEventListener("click", () => {
-    document.getElementById("lightboxModal").classList.remove("show");
-  });
-
-  async function toggleFavorite(iconId) {
-    const icon = allIcons.find((i) => i.id === iconId);
-    if (!icon) return;
-    const newVal = !icon.isFavorite;
-    icon.isFavorite = newVal; // 先に画面を更新(操作の手応えを優先)
-    renderGrid();
-    try {
-      await updateDoc(doc(db, "users", currentUser.uid, "receivedIcons", iconId), { isFavorite: newVal });
-    } catch (err) {
-      console.error(err);
-      icon.isFavorite = !newVal; // 失敗したら元に戻す
-      renderGrid();
-    }
-  }
+  document.getElementById("lightboxCloseBtn").addEventListener("click", () => document.getElementById("lightboxModal").classList.remove("show"));
 
   document.getElementById("filterStreamer").addEventListener("change", renderGrid);
   document.getElementById("filterTag").addEventListener("change", renderGrid);
   document.getElementById("filterFavOnly").addEventListener("change", renderGrid);
 
-  // ライバー名・タグの候補読み込み
-  async function loadStreamerList() {
-    const listEl = document.getElementById("streamerList");
-    listEl.innerHTML = "";
-    const snap = await getDocs(collection(db, "users", currentUser.uid, "streamers"));
-    snap.forEach((d) => {
-      const opt = document.createElement("option");
-      opt.value = d.data().label;
-      listEl.appendChild(opt);
-    });
-  }
-  async function loadTagList() {
-    const listEl = document.getElementById("tagList");
-    listEl.innerHTML = "";
-    const snap = await getDocs(collection(db, "users", currentUser.uid, "reasonTags"));
-    snap.forEach((d) => {
-      const opt = document.createElement("option");
-      opt.value = d.data().label;
-      listEl.appendChild(opt);
-    });
-  }
-
-  // モーダル開閉
+  // アップロードモーダル
   const uploadModal = document.getElementById("uploadModal");
   document.getElementById("openUploadBtn").addEventListener("click", () => {
+    const cfg = TAB_CONFIG[currentTab];
+    document.getElementById("modalTitle").textContent = cfg.modalTitle;
+    document.getElementById("streamerLabel").textContent = cfg.streamerLabel;
+    document.getElementById("streamerInput").placeholder = cfg.streamerPlaceholder;
+    document.getElementById("monthLabel").textContent = cfg.monthLabel;
     document.getElementById("fileInput").value = "";
     document.getElementById("streamerInput").value = "";
     document.getElementById("tagInput").value = "";
     document.getElementById("monthInput").value = new Date().toISOString().slice(0, 7);
     document.getElementById("modalError").textContent = "";
+    loadStreamerList();
     uploadModal.classList.add("show");
   });
   document.getElementById("cancelUploadBtn").addEventListener("click", () => uploadModal.classList.remove("show"));
 
-  // 画像リサイズ(長辺1000pxまで縮小してJPEGに変換)
   function resizeImage(file) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -643,6 +491,7 @@
   }
 
   document.getElementById("saveUploadBtn").addEventListener("click", async () => {
+    const cfg = TAB_CONFIG[currentTab];
     const fileInput = document.getElementById("fileInput");
     const streamerName = document.getElementById("streamerInput").value.trim();
     const tagRaw = document.getElementById("tagInput").value.trim();
@@ -651,7 +500,7 @@
     const saveBtn = document.getElementById("saveUploadBtn");
 
     if (!fileInput.files[0]) { errorEl.textContent = "画像ファイルを選択してください。"; return; }
-    if (!streamerName) { errorEl.textContent = "ライバー名を入力してください。"; return; }
+    if (cfg.streamerRequired && !streamerName) { errorEl.textContent = `${cfg.streamerLabel}を入力してください。`; return; }
 
     errorEl.textContent = "";
     saveBtn.disabled = true;
@@ -661,8 +510,8 @@
       const reasonTags = tagRaw ? tagRaw.split(/[,、]/).map((t) => t.trim()).filter(Boolean) : [];
 
       const blob = await resizeImage(fileInput.files[0]);
-      const newDocRef = doc(collection(db, "users", currentUser.uid, "receivedIcons"));
-      const storagePath = `users/${currentUser.uid}/receivedIcons/${newDocRef.id}.jpg`;
+      const newDocRef = doc(collection(db, "users", currentUser.uid, cfg.collectionName));
+      const storagePath = `users/${currentUser.uid}/${cfg.collectionName}/${newDocRef.id}.jpg`;
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
       const imageUrl = await getDownloadURL(storageRef);
@@ -677,21 +526,15 @@
         createdAt: serverTimestamp()
       });
 
-      await ensureCandidate("streamers", streamerName);
+      if (currentTab === "received" && streamerName) await ensureCandidate("streamers", streamerName);
       for (const tag of reasonTags) await ensureCandidate("reasonTags", tag);
 
-      // 累計枚数(このライバーさん分)をカウント
-      const countSnap = await getDocs(query(
-        collection(db, "users", currentUser.uid, "receivedIcons"),
-        where("streamerName", "==", streamerName)
-      ));
-      const count = countSnap.size;
-
       uploadModal.classList.remove("show");
-      await loadReceivedIcons();
-      await loadStreamerList();
+      await loadIcons();
       await loadTagList();
-      showCelebration(imageUrl, streamerName, count);
+
+      const totalCount = allIcons.length;
+      showCelebration(imageUrl, streamerName, totalCount, cfg.celebrationVerb);
     } catch (err) {
       console.error(err);
       errorEl.textContent = "保存に失敗しました。もう一度お試しください。";
@@ -701,15 +544,15 @@
     }
   });
 
-  function showCelebration(imageUrl, streamerName, count) {
+  function showCelebration(imageUrl, streamerName, count, verb) {
     document.getElementById("celebrationImg").src = imageUrl;
-    document.getElementById("celebrationMsg").textContent = `${streamerName}さんのアイコン、${count}枚目です!`;
+    const namePart = streamerName ? `${streamerName}${verb === "さんのアイコン" ? "" : "の"}` : "";
+    document.getElementById("celebrationMsg").textContent =
+      verb === "さんのアイコン" ? `${streamerName}さんのアイコン、${count}枚目です!` : `${verb}、${count}枚目です!`;
     document.getElementById("celebrationSub").textContent = "また新しい思い出が増えました";
     document.getElementById("celebrationOverlay").classList.add("show");
   }
-  document.getElementById("celebrationCloseBtn").addEventListener("click", () => {
-    document.getElementById("celebrationOverlay").classList.remove("show");
-  });
+  document.getElementById("celebrationCloseBtn").addEventListener("click", () => document.getElementById("celebrationOverlay").classList.remove("show"));
 </script>
 
 </body>
