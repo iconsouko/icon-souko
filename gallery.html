@@ -110,7 +110,7 @@
     border: 1px solid var(--border);
     position: relative;
   }
-  .icon-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .icon-cell img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
   .icon-cell .label {
     position: absolute; bottom: 0; left: 0; right: 0;
     background: rgba(58,53,47,0.65);
@@ -227,6 +227,48 @@
   .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
   .modal-error { color: var(--error); font-size: 12.5px; margin-top: 10px; }
 
+  /* 拡大表示(ライトボックス) */
+  .lightbox-box {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 16px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  .lightbox-box img {
+    width: 100%;
+    max-height: 55vh;
+    object-fit: contain;
+    border-radius: 10px;
+    background: var(--bg);
+  }
+  .lightbox-info { padding-top: 14px; }
+  .lightbox-name {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin: 0 0 4px;
+  }
+  .lightbox-meta { font-size: 12px; color: var(--ink-soft); margin: 0 0 10px; }
+  .lightbox-hint { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 16px; }
+  .lightbox-actions { display: flex; gap: 10px; }
+  .lightbox-actions button, .lightbox-actions a {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .btn-save-link {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 500;
+    display: inline-block;
+  }
+  .btn-save-link:hover { background: var(--accent-dark); }
+
   /* アップロード演出(シェア想定・全画面) */
   .celebration-overlay {
     display: none;
@@ -337,6 +379,22 @@
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelUploadBtn">キャンセル</button>
       <button class="btn-save" id="saveUploadBtn">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 拡大表示(保存用) -->
+<div class="modal-overlay" id="lightboxModal">
+  <div class="lightbox-box">
+    <img id="lightboxImg" src="" alt="">
+    <div class="lightbox-info">
+      <p class="lightbox-name" id="lightboxName"></p>
+      <p class="lightbox-meta" id="lightboxMeta"></p>
+      <p class="lightbox-hint">画像を長押しすると、写真に保存できます</p>
+      <div class="lightbox-actions">
+        <a class="btn-save-link" id="lightboxDownload" download="icon.jpg">画像を保存</a>
+        <button class="btn-cancel" id="lightboxCloseBtn">とじる</button>
+      </div>
     </div>
   </div>
 </div>
@@ -473,9 +531,26 @@
         e.stopPropagation();
         toggleFavorite(data.id);
       });
+      cell.querySelector("img").addEventListener("click", () => openLightbox(data));
       grid.appendChild(cell);
     });
   }
+
+  function openLightbox(data) {
+    document.getElementById("lightboxImg").src = data.imageUrl;
+    document.getElementById("lightboxName").textContent = data.streamerName || "";
+    const metaParts = [];
+    if (data.receivedMonth) metaParts.push(data.receivedMonth.replace("-", "年") + "月");
+    if (data.reasonTags && data.reasonTags.length) metaParts.push(data.reasonTags.join(" / "));
+    document.getElementById("lightboxMeta").textContent = metaParts.join("・");
+    const dlLink = document.getElementById("lightboxDownload");
+    dlLink.href = data.imageUrl;
+    dlLink.download = `${data.streamerName || "icon"}.jpg`;
+    document.getElementById("lightboxModal").classList.add("show");
+  }
+  document.getElementById("lightboxCloseBtn").addEventListener("click", () => {
+    document.getElementById("lightboxModal").classList.remove("show");
+  });
 
   async function toggleFavorite(iconId) {
     const icon = allIcons.find((i) => i.id === iconId);
