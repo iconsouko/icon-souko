@@ -629,8 +629,8 @@
     saveBtn.disabled = true; saveBtn.textContent = "保存中…";
     try {
       await updateDoc(doc(db, "users", currentUser.uid, cfg.collectionName, lightboxIcon.id), { streamerName: newStreamer, reasonTags: newTags });
-      if (currentTab === "received" && newStreamer) await ensureCandidate("streamers", newStreamer);
-      for (const tag of newTags) await ensureCandidate("reasonTags", tag);
+      if (currentTab === "received" && newStreamer) await ensureCandidates("streamers", [newStreamer]);
+      await ensureCandidates("reasonTags", newTags);
       document.getElementById("lightboxModal").classList.remove("show");
       await loadIcons(); await loadTagList();
     } catch (err) {
@@ -655,8 +655,10 @@
   const uploadModal = document.getElementById("uploadModal");
   let uploadSessionCount = 0;
   let uploadSessionLast = null; // { imageUrl, streamerName, verb, totalCount }
+  let uploadGeneration = 0; // モーダルを開き直すたびに増分。古い保存処理の結果を無視するための番号
 
   document.getElementById("openUploadBtn").addEventListener("click", () => {
+    uploadGeneration += 1;
     const cfg = TAB_CONFIG[currentTab];
     document.getElementById("modalTitle").textContent = cfg.modalTitle;
     document.getElementById("streamerLabel").textContent = cfg.streamerLabel;
@@ -680,6 +682,7 @@
   });
   document.getElementById("cancelUploadBtn").addEventListener("click", () => {
     uploadModal.classList.remove("show");
+    uploadGeneration += 1; // 進行中の保存処理があっても、この画面には反映させない
     if (uploadSessionCount > 0 && uploadSessionLast) {
       showCelebration(uploadSessionLast.imageUrl, uploadSessionLast.streamerName, uploadSessionLast.totalCount, uploadSessionLast.verb);
     }
@@ -721,6 +724,26 @@
     }
   }
 
+  // 複数ラベルをまとめて1回の通信でチェック・登録する(タグが複数あっても通信は1往復で済む)
+  async function ensureCandidates(subcollection, labels) {
+    const targets = [...new Set(labels.filter(Boolean))];
+    if (targets.length === 0) return;
+    const snap = await getDocs(collection(db, "users", currentUser.uid, subcollection));
+    const existingNorm = new Set(snap.docs.map((d) => normalize(d.data().label)));
+    const toAdd = targets.filter((l) => !existingNorm.has(normalize(l)));
+    await Promise.all(toAdd.map((label) => {
+      const newRef = doc(collection(db, "users", currentUser.uid, subcollection));
+      return setDoc(newRef, { label, normalizedLabel: normalize(label), createdAt: serverTimestamp() });
+    }));
+  }
+
+  function withTimeout(promise, ms, message) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))
+    ]);
+  }
+
   document.getElementById("saveUploadBtn").addEventListener("click", async () => {
     const cfg = TAB_CONFIG[currentTab];
     const fileInput = document.getElementById("fileInput");
@@ -734,19 +757,33 @@
     if (!fileInput.files[0]) { errorEl.textContent = "画像ファイルを選択してください。"; return; }
     if (cfg.streamerRequired && !streamerName) { errorEl.textContent = `${cfg.streamerLabel}を入力してください。`; return; }
     errorEl.textContent = "";
+    const myGeneration = uploadGeneration; // この保存処理が「今の画面」のものかどうかを後で判定するための番号
     saveBtn.disabled = true; saveBtn.textContent = "保存中…";
     try {
       const reasonTags = tagRaw ? tagRaw.split(/[,、]/).map((t) => t.trim()).filter(Boolean) : [];
-      const blob = await resizeImage(fileInput.files[0]);
+
+      const blob = await withTimeout(resizeImage(fileInput.files[0]), 20000, "画像の処理がタイムアウトしました。");
       const newDocRef = doc(collection(db, "users", currentUser.uid, cfg.collectionName));
       const storagePath = `users/${currentUser.uid}/${cfg.collectionName}/${newDocRef.id}.jpg`;
       const storageRef = ref(storage, storagePath);
-      await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
-      const imageUrl = await getDownloadURL(storageRef);
-      await setDoc(newDocRef, { imageUrl, storagePath, streamerName, reasonTags, receivedMonth, isFavorite: false, fileSize: blob.size, createdAt: serverTimestamp() });
-      if (currentTab === "received" && streamerName) await ensureCandidate("streamers", streamerName);
-      for (const tag of reasonTags) await ensureCandidate("reasonTags", tag);
+      await withTimeout(uploadBytes(storageRef, blob, { contentType: "image/jpeg" }), 25000, "画像のアップロードがタイムアウトしました。通信状況をご確認ください。");
+      const imageUrl = await withTimeout(getDownloadURL(storageRef), 15000, "画像URLの取得がタイムアウトしました。");
+      await withTimeout(
+        setDoc(newDocRef, { imageUrl, storagePath, streamerName, reasonTags, receivedMonth, isFavorite: false, fileSize: blob.size, createdAt: serverTimestamp() }),
+        15000, "データの保存がタイムアウトしました。"
+      );
+
+      // ライバー名・タグ候補の確認は1回の通信+並列でまとめて行う(高速化)
+      await Promise.all([
+        currentTab === "received" && streamerName ? ensureCandidates("streamers", [streamerName]) : Promise.resolve(),
+        ensureCandidates("reasonTags", reasonTags)
+      ]);
+
       await loadIcons(); await loadTagList();
+
+      // ここまでで裏側の保存自体は完了している。ただし、この処理が始まった後に
+      // キャンセル・再オープンされていたら(世代が変わっていたら)、今の画面には一切反映しない
+      if (myGeneration !== uploadGeneration) return;
 
       const totalCount = currentTab === "received"
         ? allIcons.filter((i) => i.streamerName === streamerName).length
@@ -761,8 +798,18 @@
       document.getElementById("cancelUploadBtn").classList.add("btn-done");
       document.getElementById("saveUploadBtn").textContent = "続けて保存する";
     } catch (err) {
-      console.error(err); errorEl.textContent = "保存に失敗しました。もう一度お試しください。";
-    } finally { saveBtn.disabled = false; saveBtn.textContent = "保存する"; }
+      console.error(err);
+      if (myGeneration === uploadGeneration) {
+        errorEl.textContent = err && err.message && err.message.includes("タイムアウト")
+          ? err.message
+          : "保存に失敗しました。もう一度お試しください。";
+      }
+    } finally {
+      if (myGeneration === uploadGeneration) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = uploadSessionCount > 0 ? "続けて保存する" : "保存する";
+      }
+    }
   });
 
   function showCelebration(imageUrl, streamerName, count, verb) {
