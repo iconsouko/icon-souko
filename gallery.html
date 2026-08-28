@@ -493,6 +493,14 @@
   }
   document.getElementById("lightboxCloseBtn").addEventListener("click", () => document.getElementById("lightboxModal").classList.remove("show"));
 
+  // 背景(余白)タップで閉じる。ただし編集中は誤操作防止のため無効にする
+  document.getElementById("lightboxModal").addEventListener("click", (e) => {
+    const isEditing = document.getElementById("lightboxEditMode").style.display !== "none";
+    if (e.target.id === "lightboxModal" && !isEditing) {
+      document.getElementById("lightboxModal").classList.remove("show");
+    }
+  });
+
   // 編集モードへの切り替え
   document.getElementById("lightboxEditBtn").addEventListener("click", () => {
     const cfg = TAB_CONFIG[currentTab];
