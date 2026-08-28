@@ -53,12 +53,12 @@
   .btn-delete-sm { background: none; border: 1px solid var(--error); color: var(--error); }
   .btn-delete-sm:hover { background: var(--error); color: #fff; }
 
-  .rename-form { display: flex; gap: 8px; flex: 1; align-items: center; }
+  .rename-form { display: flex; gap: 8px; flex: 1; align-items: center; min-width: 0; }
   .rename-form input {
-    flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
     font-size: 16px; background: var(--bg);
   }
-  .rename-form button { padding: 7px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer; }
+  .rename-form button { padding: 7px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
   .btn-save-sm { background: var(--accent); border: none; color: #fff; }
   .btn-cancel-sm { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
 
