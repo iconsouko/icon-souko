@@ -123,6 +123,7 @@
   .btn-save { background: var(--accent); border: none; color: #fff; font-weight: 500; }
   .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
   .modal-error { color: var(--error); font-size: 12.5px; margin-top: 10px; }
+  .modal-success { color: var(--accent-dark); font-size: 12.5px; margin-top: 6px; min-height: 16px; }
 
   .lightbox-box { background: var(--surface); border-radius: 16px; padding: 16px; max-width: 380px; width: 100%; text-align: center; position: relative; }
   .lightbox-close-x { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(58,53,47,0.08); color: var(--ink-soft); font-size: 18px; line-height: 1; cursor: pointer; z-index: 1; display: flex; align-items: center; justify-content: center; }
@@ -275,6 +276,7 @@
       <input type="month" id="monthInput">
     </div>
     <div class="modal-error" id="modalError"></div>
+    <p class="modal-success" id="modalSuccess"></p>
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelUploadBtn">キャンセル</button>
       <button class="btn-save" id="saveUploadBtn">保存する</button>
@@ -638,6 +640,9 @@
 
   // ===== アップロード =====
   const uploadModal = document.getElementById("uploadModal");
+  let uploadSessionCount = 0;
+  let uploadSessionLast = null; // { imageUrl, streamerName, verb, totalCount }
+
   document.getElementById("openUploadBtn").addEventListener("click", () => {
     const cfg = TAB_CONFIG[currentTab];
     document.getElementById("modalTitle").textContent = cfg.modalTitle;
@@ -649,10 +654,19 @@
     document.getElementById("tagInput").value = "";
     document.getElementById("monthInput").value = new Date().toISOString().slice(0, 7);
     document.getElementById("modalError").textContent = "";
+    document.getElementById("modalSuccess").textContent = "";
+    document.getElementById("cancelUploadBtn").textContent = "キャンセル";
+    uploadSessionCount = 0;
+    uploadSessionLast = null;
     loadStreamerList();
     uploadModal.classList.add("show");
   });
-  document.getElementById("cancelUploadBtn").addEventListener("click", () => uploadModal.classList.remove("show"));
+  document.getElementById("cancelUploadBtn").addEventListener("click", () => {
+    uploadModal.classList.remove("show");
+    if (uploadSessionCount > 0 && uploadSessionLast) {
+      showCelebration(uploadSessionLast.imageUrl, uploadSessionLast.streamerName, uploadSessionLast.totalCount, uploadSessionLast.verb);
+    }
+  });
 
   function resizeImage(file) {
     return new Promise((resolve, reject) => {
@@ -713,10 +727,16 @@
       await setDoc(newDocRef, { imageUrl, storagePath, streamerName, reasonTags, receivedMonth, isFavorite: false, fileSize: blob.size, createdAt: serverTimestamp() });
       if (currentTab === "received" && streamerName) await ensureCandidate("streamers", streamerName);
       for (const tag of reasonTags) await ensureCandidate("reasonTags", tag);
-      uploadModal.classList.remove("show");
       await loadIcons(); await loadTagList();
+
       const totalCount = allIcons.length;
-      showCelebration(imageUrl, streamerName, totalCount, cfg.celebrationVerb);
+      uploadSessionCount += 1;
+      uploadSessionLast = { imageUrl, streamerName, totalCount, verb: cfg.celebrationVerb };
+
+      // モーダルは閉じず、画像ファイルの選択欄だけをクリアして次の1枚に備える
+      document.getElementById("fileInput").value = "";
+      document.getElementById("modalSuccess").textContent = `✓ 保存しました(${uploadSessionCount}枚目)`;
+      document.getElementById("cancelUploadBtn").textContent = "完了";
     } catch (err) {
       console.error(err); errorEl.textContent = "保存に失敗しました。もう一度お試しください。";
     } finally { saveBtn.disabled = false; saveBtn.textContent = "保存する"; }
