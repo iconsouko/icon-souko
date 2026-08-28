@@ -36,6 +36,8 @@
   .field-row { display: block; }
   .field-row .field { margin-bottom: 14px; }
   .field-row .field:last-child { margin-bottom: 0; }
+  .month-select-row { display: flex; gap: 8px; }
+  .month-select-row select { flex: 1; min-width: 0; }
 
   .count-badge {
     display: inline-block; background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
@@ -85,12 +87,18 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label for="filterFrom">期間(はじめ)</label>
-        <input type="month" id="filterFrom">
+        <label>期間(はじめ)</label>
+        <div class="month-select-row">
+          <select id="filterFromYear"><option value="">年</option></select>
+          <select id="filterFromMonth"><option value="">月</option></select>
+        </div>
       </div>
       <div class="field">
-        <label for="filterTo">期間(おわり)</label>
-        <input type="month" id="filterTo">
+        <label>期間(おわり)</label>
+        <div class="month-select-row">
+          <select id="filterToYear"><option value="">年</option></select>
+          <select id="filterToMonth"><option value="">月</option></select>
+        </div>
       </div>
     </div>
     <p class="count-badge" id="countBadge">対象:0枚</p>
@@ -160,11 +168,38 @@
     tagSel.innerHTML = '<option value="">すべて</option>' + tags.map((t) => `<option value="${t}">${t}</option>`).join("");
   }
 
+  function populateYearMonthSelects() {
+    const thisYear = new Date().getFullYear();
+    const years = [];
+    for (let y = thisYear + 1; y >= thisYear - 8; y--) years.push(y);
+    const yearOptions = years.map((y) => `<option value="${y}">${y}年</option>`).join("");
+    const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
+      .map((m) => `<option value="${String(m).padStart(2, "0")}">${m}月</option>`).join("");
+    ["filterFromYear", "filterToYear"].forEach((id) => {
+      document.getElementById(id).innerHTML = '<option value="">年</option>' + yearOptions;
+    });
+    ["filterFromMonth", "filterToMonth"].forEach((id) => {
+      document.getElementById(id).innerHTML = '<option value="">月</option>' + monthOptions;
+    });
+  }
+  populateYearMonthSelects();
+
+  function getFromValue() {
+    const y = document.getElementById("filterFromYear").value;
+    const m = document.getElementById("filterFromMonth").value;
+    return y && m ? `${y}-${m}` : "";
+  }
+  function getToValue() {
+    const y = document.getElementById("filterToYear").value;
+    const m = document.getElementById("filterToMonth").value;
+    return y && m ? `${y}-${m}` : "";
+  }
+
   function getFilteredIcons() {
     const streamer = document.getElementById("filterStreamer").value;
     const tag = document.getElementById("filterTag").value;
-    const from = document.getElementById("filterFrom").value;
-    const to = document.getElementById("filterTo").value;
+    const from = getFromValue();
+    const to = getToValue();
     return allIcons.filter((icon) => {
       if (streamer && icon.streamerName !== streamer) return false;
       if (tag && !(icon.reasonTags || []).includes(tag)) return false;
@@ -190,7 +225,7 @@
     document.getElementById("generateBtn").disabled = filtered.length === 0;
   }
 
-  ["filterStreamer", "filterTag", "filterFrom", "filterTo"].forEach((id) => {
+  ["filterStreamer", "filterTag", "filterFromYear", "filterFromMonth", "filterToYear", "filterToMonth"].forEach((id) => {
     document.getElementById(id).addEventListener("change", updateCountAndTitle);
   });
 
@@ -241,6 +276,12 @@
       const remainCount = filtered.length - displayIcons.length;
 
       const images = await Promise.all(displayIcons.map((i) => loadImageEl(i.imageUrl)));
+
+      // Webフォントの読み込み完了を待つ(未読み込みのまま描画すると文字幅がずれるため)
+      await document.fonts.load("700 40px 'Zen Maru Gothic'");
+      await document.fonts.load("500 19px 'Zen Maru Gothic'");
+      await document.fonts.load("400 19px 'Zen Kaku Gothic New'");
+      await document.fonts.ready;
 
       const W = 720, H = 1000;
       const canvas = document.createElement("canvas");
@@ -336,7 +377,7 @@
       ctx.textAlign = "right";
       ctx.font = "500 19px 'Zen Maru Gothic', sans-serif";
       ctx.fillStyle = INK;
-      ctx.fillText("🗃️ アイコン倉庫さん", W - 50, H - 56);
+      ctx.fillText("アイコン倉庫さん", W - 50, H - 56);
 
       ctx.textAlign = "center";
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
