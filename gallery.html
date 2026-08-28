@@ -62,6 +62,18 @@
   .filter-bar select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--surface); color: var(--ink); }
   .fav-filter { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
   .filter-count { margin-left: auto; font-size: 11.5px; color: var(--ink-soft); }
+  .period-toggle {
+    background: none; border: 1px solid var(--border); color: var(--ink-soft);
+    padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
+  }
+  .period-toggle.open { background: var(--surface); color: var(--accent-dark); }
+  .period-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin: -6px 0 16px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .period-tilde { color: var(--ink-soft); font-size: 13px; }
+  .period-clear { background: none; border: none; color: var(--ink-soft); font-size: 12px; text-decoration: underline; cursor: pointer; margin-left: auto; }
+  .card-cta-btn:hover { opacity: 0.9; }
 
   .grid { display: grid; gap: 12px; }
   .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
@@ -157,14 +169,16 @@
 <div class="tabs">
   <button class="tab-btn active" id="tabReceived" data-tab="received">もらったアイコン</button>
   <button class="tab-btn" id="tabCreated" data-tab="created">つくったアイコン</button>
-  <button class="tab-btn" id="tabCard" data-tab="card">コレクションカード</button>
 </div>
 
 <main>
   <!-- もらった/つくった 共通ギャラリービュー -->
   <div id="galleryView">
     <div class="toolbar">
-      <button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button>
+        <button class="upload-btn card-cta-btn" id="openCardModalBtn" style="background:var(--tag);">このアイコンたちでカードをつくる</button>
+      </div>
       <div class="col-toggle" id="colToggle">
         <button data-cols="2">2列</button>
         <button data-cols="3">3列</button>
@@ -175,7 +189,20 @@
       <select id="filterStreamer"><option value="">ライバー:すべて</option></select>
       <select id="filterTag"><option value="">タグ:すべて</option></select>
       <label class="fav-filter"><input type="checkbox" id="filterFavOnly"> お気に入りのみ</label>
+      <button class="period-toggle" id="periodToggle">期間を指定する ▾</button>
       <span class="filter-count" id="filterCount"></span>
+    </div>
+    <div class="period-row" id="periodRow" style="display:none;">
+      <div class="month-select-row">
+        <select id="galFromYear"><option value="">開始:年</option></select>
+        <select id="galFromMonth"><option value="">月</option></select>
+      </div>
+      <span class="period-tilde">〜</span>
+      <div class="month-select-row">
+        <select id="galToYear"><option value="">終了:年</option></select>
+        <select id="galToMonth"><option value="">月</option></select>
+      </div>
+      <button class="period-clear" id="periodClearBtn">クリア</button>
     </div>
     <div class="grid cols-2" id="grid"></div>
     <div class="empty-state" id="emptyState" style="display:none;">
@@ -183,53 +210,28 @@
     </div>
   </div>
 
-  <!-- コレクションカードビュー -->
-  <div id="cardView" style="display:none;">
-    <div class="card-panel">
-      <h2>対象のアイコンを選ぶ</h2>
+  <!-- コレクションカード作成モーダル -->
+  <div class="modal-overlay" id="cardModal">
+    <div class="modal" style="max-width:420px;">
+      <h2>カードをつくる</h2>
+      <p class="count-badge" id="cardCountBadge" style="margin-bottom:16px;">対象:0枚</p>
       <div class="field">
-        <label for="cardFilterStreamer">ライバー</label>
-        <select id="cardFilterStreamer"><option value="">すべて</option></select>
-      </div>
-      <div class="field">
-        <label for="cardFilterTag">配布理由タグ</label>
-        <select id="cardFilterTag"><option value="">すべて</option></select>
-      </div>
-      <div class="card-field-row">
-        <div class="field">
-          <label>期間(はじめ)</label>
-          <div class="month-select-row">
-            <select id="cardFromYear"><option value="">年</option></select>
-            <select id="cardFromMonth"><option value="">月</option></select>
-          </div>
-        </div>
-        <div class="field">
-          <label>期間(おわり)</label>
-          <div class="month-select-row">
-            <select id="cardToYear"><option value="">年</option></select>
-            <select id="cardToMonth"><option value="">月</option></select>
-          </div>
-        </div>
-      </div>
-      <p class="count-badge" id="cardCountBadge">対象:0枚</p>
-    </div>
-
-    <div class="card-panel">
-      <h2>カードのタイトル</h2>
-      <div class="field">
+        <label for="cardTitleInput">カードのタイトル</label>
         <input type="text" id="cardTitleInput" placeholder="タイトルを入力(空欄でも可)">
       </div>
-      <button class="generate-btn" id="cardGenerateBtn">カードをつくる</button>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cardModalCancelBtn">キャンセル</button>
+        <button class="btn-save" id="cardGenerateBtn">カードをつくる</button>
+      </div>
       <p class="status-msg" id="cardStatusMsg"></p>
-    </div>
 
-    <div class="card-panel result-card" id="cardResultPanel" style="display:none;">
-      <h2>できあがり</h2>
-      <img id="cardResultImg" alt="コレクションカード">
-      <p class="result-hint">画像を長押ししても保存できます</p>
-      <div class="result-actions">
-        <a class="btn-primary" id="cardDownloadBtn" download="icon-souko-collection-card.png">画像を保存</a>
-        <button class="btn-secondary" id="cardShareBtn" style="display:none;">共有する</button>
+      <div class="result-card" id="cardResultPanel" style="display:none; margin-top:20px;">
+        <img id="cardResultImg" alt="コレクションカード">
+        <p class="result-hint">画像を長押ししても保存できます</p>
+        <div class="result-actions">
+          <a class="btn-primary" id="cardDownloadBtn" download="icon-souko-collection-card.png">画像を保存</a>
+          <button class="btn-secondary" id="cardShareBtn" style="display:none;">共有する</button>
+        </div>
       </div>
     </div>
   </div>
@@ -351,7 +353,7 @@
 
   let currentTab = "received";
   let allIcons = [];               // 現在表示中タブ(もらった/つくった)のアイコン
-  let receivedIconsForCard = [];   // コレクションカード用(常に「もらったアイコン」から)
+  let currentFilteredIcons = [];   // 画面に今表示されている絞り込み結果(カード作成で使用)
   let currentCols = parseInt(localStorage.getItem("iconSoukoCols") || "2", 10);
 
   onAuthStateChanged(auth, (user) => {
@@ -360,9 +362,8 @@
     setColumns(currentCols);
     loadStreamerList();
     loadTagList();
+    populateGalleryPeriodSelects();
     loadIcons();
-    loadReceivedIconsForCard();
-    populateCardYearMonthSelects();
   });
 
   document.getElementById("signoutBtn").addEventListener("click", () => signOut(auth));
@@ -380,17 +381,10 @@
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      const tab = btn.dataset.tab;
-      if (tab === "card") {
-        document.getElementById("galleryView").style.display = "none";
-        document.getElementById("cardView").style.display = "block";
-      } else {
-        document.getElementById("galleryView").style.display = "block";
-        document.getElementById("cardView").style.display = "none";
-        currentTab = tab;
-        document.getElementById("filterStreamer").style.display = currentTab === "received" ? "" : "none";
-        loadIcons();
-      }
+      currentTab = btn.dataset.tab;
+      document.getElementById("filterStreamer").style.display = currentTab === "received" ? "" : "none";
+      document.getElementById("openCardModalBtn").style.display = currentTab === "received" ? "" : "none";
+      loadIcons();
     });
   });
 
@@ -461,13 +455,18 @@
     const streamerFilter = currentTab === "received" ? document.getElementById("filterStreamer").value : "";
     const tagFilter = document.getElementById("filterTag").value;
     const favOnly = document.getElementById("filterFavOnly").checked;
+    const periodFrom = getGalFromValue();
+    const periodTo = getGalToValue();
 
     const filtered = allIcons.filter((icon) => {
       if (streamerFilter && icon.streamerName !== streamerFilter) return false;
       if (tagFilter && !(icon.reasonTags || []).includes(tagFilter)) return false;
       if (favOnly && !icon.isFavorite) return false;
+      if (periodFrom && (!icon.receivedMonth || icon.receivedMonth < periodFrom)) return false;
+      if (periodTo && (!icon.receivedMonth || icon.receivedMonth > periodTo)) return false;
       return true;
     });
+    currentFilteredIcons = filtered;
 
     grid.innerHTML = "";
     if (allIcons.length === 0) {
@@ -510,6 +509,45 @@
   document.getElementById("filterStreamer").addEventListener("change", renderGrid);
   document.getElementById("filterTag").addEventListener("change", renderGrid);
   document.getElementById("filterFavOnly").addEventListener("change", renderGrid);
+
+  // 期間の絞り込み(折りたたみ式)
+  function populateGalleryPeriodSelects() {
+    const thisYear = new Date().getFullYear();
+    const years = [];
+    for (let y = thisYear + 1; y >= thisYear - 8; y--) years.push(y);
+    const yearOptions = years.map((y) => `<option value="${y}">${y}年</option>`).join("");
+    const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => `<option value="${String(m).padStart(2, "0")}">${m}月</option>`).join("");
+    document.getElementById("galFromYear").innerHTML = '<option value="">開始:年</option>' + yearOptions;
+    document.getElementById("galToYear").innerHTML = '<option value="">終了:年</option>' + yearOptions;
+    document.getElementById("galFromMonth").innerHTML = '<option value="">月</option>' + monthOptions;
+    document.getElementById("galToMonth").innerHTML = '<option value="">月</option>' + monthOptions;
+  }
+  function getGalFromValue() {
+    const y = document.getElementById("galFromYear").value, m = document.getElementById("galFromMonth").value;
+    return y && m ? `${y}-${m}` : "";
+  }
+  function getGalToValue() {
+    const y = document.getElementById("galToYear").value, m = document.getElementById("galToMonth").value;
+    return y && m ? `${y}-${m}` : "";
+  }
+  const periodToggle = document.getElementById("periodToggle");
+  const periodRow = document.getElementById("periodRow");
+  periodToggle.addEventListener("click", () => {
+    const isOpen = periodRow.style.display !== "none";
+    periodRow.style.display = isOpen ? "none" : "flex";
+    periodToggle.classList.toggle("open", !isOpen);
+    periodToggle.textContent = isOpen ? "期間を指定する ▾" : "期間を指定する ▴";
+  });
+  document.getElementById("periodClearBtn").addEventListener("click", () => {
+    document.getElementById("galFromYear").value = "";
+    document.getElementById("galFromMonth").value = "";
+    document.getElementById("galToYear").value = "";
+    document.getElementById("galToMonth").value = "";
+    renderGrid();
+  });
+  ["galFromYear", "galFromMonth", "galToYear", "galToMonth"].forEach((id) => {
+    document.getElementById(id).addEventListener("change", renderGrid);
+  });
 
   // ===== ライトボックス(拡大・保存・編集・削除) =====
   let lightboxIcon = null;
@@ -659,7 +697,6 @@
       for (const tag of reasonTags) await ensureCandidate("reasonTags", tag);
       uploadModal.classList.remove("show");
       await loadIcons(); await loadTagList();
-      if (currentTab === "received") await loadReceivedIconsForCard();
       const totalCount = allIcons.length;
       showCelebration(imageUrl, streamerName, totalCount, cfg.celebrationVerb);
     } catch (err) {
@@ -676,75 +713,27 @@
   }
   document.getElementById("celebrationCloseBtn").addEventListener("click", () => document.getElementById("celebrationOverlay").classList.remove("show"));
 
-  // ===== コレクションカード =====
-  async function loadReceivedIconsForCard() {
-    const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    receivedIconsForCard = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    populateCardFilterOptions();
-    updateCardCountAndTitle();
-  }
+  // ===== コレクションカード(「もらったアイコン」の絞り込み結果を使用) =====
+  const cardModal = document.getElementById("cardModal");
 
-  function populateCardFilterOptions() {
-    const streamerSel = document.getElementById("cardFilterStreamer");
-    const tagSel = document.getElementById("cardFilterTag");
-    const streamers = [...new Set(receivedIconsForCard.map((i) => i.streamerName).filter(Boolean))].sort();
-    const tags = [...new Set(receivedIconsForCard.flatMap((i) => i.reasonTags || []))].sort();
-    streamerSel.innerHTML = '<option value="">すべて</option>' + streamers.map((s) => `<option value="${s}">${s}</option>`).join("");
-    tagSel.innerHTML = '<option value="">すべて</option>' + tags.map((t) => `<option value="${t}">${t}</option>`).join("");
-  }
-
-  function populateCardYearMonthSelects() {
-    const thisYear = new Date().getFullYear();
-    const years = [];
-    for (let y = thisYear + 1; y >= thisYear - 8; y--) years.push(y);
-    const yearOptions = years.map((y) => `<option value="${y}">${y}年</option>`).join("");
-    const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => `<option value="${String(m).padStart(2, "0")}">${m}月</option>`).join("");
-    ["cardFromYear", "cardToYear"].forEach((id) => { document.getElementById(id).innerHTML = '<option value="">年</option>' + yearOptions; });
-    ["cardFromMonth", "cardToMonth"].forEach((id) => { document.getElementById(id).innerHTML = '<option value="">月</option>' + monthOptions; });
-  }
-
-  function getCardFromValue() {
-    const y = document.getElementById("cardFromYear").value, m = document.getElementById("cardFromMonth").value;
-    return y && m ? `${y}-${m}` : "";
-  }
-  function getCardToValue() {
-    const y = document.getElementById("cardToYear").value, m = document.getElementById("cardToMonth").value;
-    return y && m ? `${y}-${m}` : "";
-  }
-
-  function getCardFilteredIcons() {
-    const streamer = document.getElementById("cardFilterStreamer").value;
-    const tag = document.getElementById("cardFilterTag").value;
-    const from = getCardFromValue(); const to = getCardToValue();
-    return receivedIconsForCard.filter((icon) => {
-      if (streamer && icon.streamerName !== streamer) return false;
-      if (tag && !(icon.reasonTags || []).includes(tag)) return false;
-      if (from && (!icon.receivedMonth || icon.receivedMonth < from)) return false;
-      if (to && (!icon.receivedMonth || icon.receivedMonth > to)) return false;
-      return true;
-    });
-  }
-
-  function suggestCardTitle(filtered) {
-    const streamer = document.getElementById("cardFilterStreamer").value;
-    const tag = document.getElementById("cardFilterTag").value;
-    const count = filtered.length;
+  function suggestCardTitle() {
+    const streamer = document.getElementById("filterStreamer").value;
+    const tag = document.getElementById("filterTag").value;
+    const count = currentFilteredIcons.length;
     if (streamer) return `${streamer}さんのアイコン、${count}枚集まりました!`;
     if (tag) return `「${tag}」のアイコン、${count}枚`;
     return "";
   }
 
-  function updateCardCountAndTitle() {
-    const filtered = getCardFilteredIcons();
-    document.getElementById("cardCountBadge").textContent = `対象:${filtered.length}枚`;
-    document.getElementById("cardTitleInput").value = suggestCardTitle(filtered);
-    document.getElementById("cardGenerateBtn").disabled = filtered.length === 0;
-  }
-
-  ["cardFilterStreamer", "cardFilterTag", "cardFromYear", "cardFromMonth", "cardToYear", "cardToMonth"].forEach((id) => {
-    document.getElementById(id).addEventListener("change", updateCardCountAndTitle);
+  document.getElementById("openCardModalBtn").addEventListener("click", () => {
+    document.getElementById("cardCountBadge").textContent = `対象:${currentFilteredIcons.length}枚`;
+    document.getElementById("cardTitleInput").value = suggestCardTitle();
+    document.getElementById("cardStatusMsg").textContent = "";
+    document.getElementById("cardResultPanel").style.display = "none";
+    document.getElementById("cardGenerateBtn").disabled = currentFilteredIcons.length === 0;
+    cardModal.classList.add("show");
   });
+  document.getElementById("cardModalCancelBtn").addEventListener("click", () => cardModal.classList.remove("show"));
 
   function loadImageEl(url) {
     return new Promise((resolve, reject) => {
@@ -789,7 +778,7 @@
   document.getElementById("cardGenerateBtn").addEventListener("click", async () => {
     const statusEl = document.getElementById("cardStatusMsg");
     const btn = document.getElementById("cardGenerateBtn");
-    const filtered = getCardFilteredIcons();
+    const filtered = currentFilteredIcons;
     if (filtered.length === 0) return;
     btn.disabled = true;
     statusEl.className = "status-msg";
@@ -886,7 +875,6 @@
         document.getElementById("cardResultImg").src = url;
         document.getElementById("cardDownloadBtn").href = url;
         document.getElementById("cardResultPanel").style.display = "block";
-        document.getElementById("cardResultPanel").scrollIntoView({ behavior: "smooth" });
 
         const shareBtn = document.getElementById("cardShareBtn");
         const file = new File([blob], "icon-souko-collection-card.png", { type: "image/png" });
