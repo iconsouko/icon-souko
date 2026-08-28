@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>コレクションカード | アイコン倉庫さん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3EEE4; --surface: #FFFFFF; --ink: #3A352F; --ink-soft: #6B6259;
+    --accent: #4F6D5A; --accent-dark: #3B5445; --tag: #C98A3A; --border: #E3DACB; --error: #B4544A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Zen Kaku Gothic New', sans-serif; color: var(--ink); min-height: 100vh; }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px;
+    display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 16px; margin: 0; }
+  .back-link { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; }
+  .back-link:hover { text-decoration: underline; }
+
+  main { max-width: 480px; margin: 0 auto; padding: 20px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  .panel h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 14.5px; margin: 0 0 14px; color: var(--accent-dark); }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .field select, .field input[type="text"], .field input[type="month"] {
+    width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--bg); color: var(--ink);
+  }
+  .field-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .field-row .field { flex: 1 1 140px; min-width: 0; }
+
+  .count-badge {
+    display: inline-block; background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+    padding: 5px 14px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 4px;
+  }
+
+  .generate-btn {
+    width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 13px; font-size: 15px; font-weight: 500; cursor: pointer;
+  }
+  .generate-btn:hover { background: var(--accent-dark); }
+  .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status-msg { font-size: 12.5px; color: var(--ink-soft); text-align: center; margin-top: 10px; min-height: 16px; }
+  .status-msg.error { color: var(--error); }
+
+  .result-card { text-align: center; }
+  .result-card img { width: 100%; border-radius: 14px; box-shadow: 0 10px 30px -10px rgba(58,53,47,0.3); margin-bottom: 10px; }
+  .result-hint { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 14px; }
+  .result-actions { display: flex; gap: 10px; }
+  .result-actions button, .result-actions a {
+    flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; cursor: pointer; text-decoration: none;
+    font-family: 'Zen Kaku Gothic New', sans-serif; white-space: nowrap; font-weight: 500;
+  }
+  .btn-primary { background: var(--accent); color: #fff; display: inline-block; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-secondary { background: none; border: 1px solid var(--border); color: var(--ink-soft); font-weight: 400; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="gallery.html">← ギャラリーへ戻る</a>
+  <h1>コレクションカードをつくる</h1>
+</header>
+
+<main>
+  <div class="panel">
+    <h2>対象のアイコンを選ぶ</h2>
+    <div class="field">
+      <label for="filterStreamer">ライバー</label>
+      <select id="filterStreamer"><option value="">すべて</option></select>
+    </div>
+    <div class="field">
+      <label for="filterTag">配布理由タグ</label>
+      <select id="filterTag"><option value="">すべて</option></select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="filterFrom">期間(はじめ)</label>
+        <input type="month" id="filterFrom">
+      </div>
+      <div class="field">
+        <label for="filterTo">期間(おわり)</label>
+        <input type="month" id="filterTo">
+      </div>
+    </div>
+    <p class="count-badge" id="countBadge">対象:0枚</p>
+  </div>
+
+  <div class="panel">
+    <h2>カードのタイトル</h2>
+    <div class="field">
+      <input type="text" id="titleInput" placeholder="タイトルを入力">
+    </div>
+    <button class="generate-btn" id="generateBtn">カードをつくる</button>
+    <p class="status-msg" id="statusMsg"></p>
+  </div>
+
+  <div class="panel result-card" id="resultPanel" style="display:none;">
+    <h2>できあがり</h2>
+    <img id="resultImg" alt="コレクションカード">
+    <p class="result-hint">画像を長押ししても保存できます</p>
+    <div class="result-actions">
+      <a class="btn-primary" id="downloadBtn" download="icon-souko-collection-card.png">画像を保存</a>
+      <button class="btn-secondary" id="shareBtn" style="display:none;">共有する</button>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
+    authDomain: "icon-souko-b2471.firebaseapp.com",
+    projectId: "icon-souko-b2471",
+    storageBucket: "icon-souko-b2471.firebasestorage.app",
+    messagingSenderId: "638657050327",
+    appId: "1:638657050327:web:9b1f5ac8345c6064326292"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+  let allIcons = [];
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
+    currentUser = user;
+    loadIcons();
+  });
+
+  async function loadIcons() {
+    const q = query(collection(db, "users", currentUser.uid, "receivedIcons"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    allIcons = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    populateFilterOptions();
+    updateCountAndTitle();
+  }
+
+  function populateFilterOptions() {
+    const streamerSel = document.getElementById("filterStreamer");
+    const tagSel = document.getElementById("filterTag");
+    const streamers = [...new Set(allIcons.map((i) => i.streamerName).filter(Boolean))].sort();
+    const tags = [...new Set(allIcons.flatMap((i) => i.reasonTags || []))].sort();
+    streamerSel.innerHTML = '<option value="">すべて</option>' + streamers.map((s) => `<option value="${s}">${s}</option>`).join("");
+    tagSel.innerHTML = '<option value="">すべて</option>' + tags.map((t) => `<option value="${t}">${t}</option>`).join("");
+  }
+
+  function getFilteredIcons() {
+    const streamer = document.getElementById("filterStreamer").value;
+    const tag = document.getElementById("filterTag").value;
+    const from = document.getElementById("filterFrom").value;
+    const to = document.getElementById("filterTo").value;
+    return allIcons.filter((icon) => {
+      if (streamer && icon.streamerName !== streamer) return false;
+      if (tag && !(icon.reasonTags || []).includes(tag)) return false;
+      if (from && (!icon.receivedMonth || icon.receivedMonth < from)) return false;
+      if (to && (!icon.receivedMonth || icon.receivedMonth > to)) return false;
+      return true;
+    });
+  }
+
+  function suggestTitle(filtered) {
+    const streamer = document.getElementById("filterStreamer").value;
+    const tag = document.getElementById("filterTag").value;
+    const count = filtered.length;
+    if (streamer) return `${streamer}さんのアイコン、${count}枚集まりました!`;
+    if (tag) return `「${tag}」のアイコン、${count}枚`;
+    return `私の推し活アイコン集め、全${count}枚`;
+  }
+
+  function updateCountAndTitle() {
+    const filtered = getFilteredIcons();
+    document.getElementById("countBadge").textContent = `対象:${filtered.length}枚`;
+    document.getElementById("titleInput").value = suggestTitle(filtered);
+    document.getElementById("generateBtn").disabled = filtered.length === 0;
+  }
+
+  ["filterStreamer", "filterTag", "filterFrom", "filterTo"].forEach((id) => {
+    document.getElementById(id).addEventListener("change", updateCountAndTitle);
+  });
+
+  function loadImageEl(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawCoverImage(ctx, img, x, y, w, h) {
+    const ir = img.width / img.height;
+    const tr = w / h;
+    let sx, sy, sw, sh;
+    if (ir > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw) / 2; sy = 0; }
+    else { sw = img.width; sh = sw / tr; sx = 0; sy = (img.height - sh) / 2; }
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+
+  document.getElementById("generateBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("statusMsg");
+    const btn = document.getElementById("generateBtn");
+    const filtered = getFilteredIcons();
+    if (filtered.length === 0) return;
+
+    btn.disabled = true;
+    statusEl.className = "status-msg";
+    statusEl.textContent = "カードを作成しています…";
+
+    try {
+      const MAX_SHOW = 16;
+      const favorites = filtered.filter((i) => i.isFavorite);
+      const rest = filtered.filter((i) => !i.isFavorite);
+      const displayIcons = [...favorites, ...rest].slice(0, MAX_SHOW);
+      const remainCount = filtered.length - displayIcons.length;
+
+      const images = await Promise.all(displayIcons.map((i) => loadImageEl(i.imageUrl)));
+
+      const W = 720, H = 1000;
+      const canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+
+      // 背景:深みのあるグラデーション+ふんわりした光の演出
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, "#5A7C67");
+      grad.addColorStop(0.55, "#4F6D5A");
+      grad.addColorStop(1, "#334A3D");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      const glow = ctx.createRadialGradient(W * 0.5, 90, 20, W * 0.5, 90, 420);
+      glow.addColorStop(0, "rgba(255,255,255,0.14)");
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+
+      // 外周の金の飾り枠
+      ctx.strokeStyle = "rgba(201,138,58,0.55)";
+      ctx.lineWidth = 2;
+      roundRectPath(ctx, 20, 20, W - 40, H - 40, 22);
+      ctx.stroke();
+
+      // "COLLECTION" ラベル
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#C98A3A";
+      ctx.font = "700 15px 'Zen Kaku Gothic New', sans-serif";
+      ctx.save();
+      ctx.letterSpacing = "6px";
+      ctx.fillText("C  O  L  L  E  C  T  I  O  N", W / 2, 70);
+      ctx.restore();
+
+      // 小さな飾りライン
+      ctx.strokeStyle = "rgba(201,138,58,0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(W / 2 - 40, 84); ctx.lineTo(W / 2 + 40, 84); ctx.stroke();
+
+      // タイトル(白・影つき)
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0,0,0,0.25)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 3;
+      ctx.font = "700 42px 'Zen Maru Gothic', sans-serif";
+      const title = document.getElementById("titleInput").value || suggestTitle(filtered);
+      wrapText(ctx, title, W / 2, 145, W - 120, 52);
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+      // 台紙(白っぽい半透明パネル)でグリッドを引き立てる
+      const cols = 4;
+      const gap = 14;
+      const panelPad = 26;
+      const gridWidthArea = W - 100;
+      const cellSize = (gridWidthArea - panelPad * 2 - gap * (cols - 1)) / cols;
+      const rows = Math.ceil(images.length / cols);
+      const gridTop = 250;
+      const panelHeight = rows * cellSize + (rows - 1) * gap + panelPad * 2;
+
+      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      roundRectPath(ctx, 50, gridTop, W - 100, panelHeight, 20);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(201,138,58,0.5)";
+      ctx.lineWidth = 1.5;
+      roundRectPath(ctx, 50, gridTop, W - 100, panelHeight, 20);
+      ctx.stroke();
+
+      images.forEach((img, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const x = 50 + panelPad + col * (cellSize + gap);
+        const y = gridTop + panelPad + row * (cellSize + gap);
+        ctx.save();
+        roundRectPath(ctx, x, y, cellSize, cellSize, 12);
+        ctx.clip();
+        drawCoverImage(ctx, img, x, y, cellSize, cellSize);
+        ctx.restore();
+        // 各アイコンに薄い金枠
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.lineWidth = 1.5;
+        roundRectPath(ctx, x, y, cellSize, cellSize, 12);
+        ctx.stroke();
+      });
+
+      let footerY = gridTop + panelHeight + 34;
+      if (remainCount > 0) {
+        ctx.font = "400 19px 'Zen Kaku Gothic New', sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillText(`ほか ${remainCount}枚`, W / 2, footerY);
+        footerY += 30;
+      }
+
+      // 下部の飾りライン+ブランド
+      ctx.strokeStyle = "rgba(201,138,58,0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(W / 2 - 60, H - 66); ctx.lineTo(W / 2 + 60, H - 66); ctx.stroke();
+
+      ctx.font = "500 19px 'Zen Maru Gothic', sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillText("🗃️ アイコン倉庫さん", W / 2, H - 40);
+
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+      ctx.font = "400 13px 'Zen Kaku Gothic New', sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillText(dateStr, W / 2, H - 20);
+
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        document.getElementById("resultImg").src = url;
+        document.getElementById("downloadBtn").href = url;
+        document.getElementById("resultPanel").style.display = "block";
+        document.getElementById("resultPanel").scrollIntoView({ behavior: "smooth" });
+
+        const shareBtn = document.getElementById("shareBtn");
+        const file = new File([blob], "icon-souko-collection-card.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          shareBtn.style.display = "block";
+          shareBtn.onclick = () => navigator.share({ files: [file], title: "アイコン倉庫さん" }).catch(() => {});
+        } else {
+          shareBtn.style.display = "none";
+        }
+
+        statusEl.textContent = "";
+        btn.disabled = false;
+      }, "image/png");
+    } catch (err) {
+      console.error(err);
+      statusEl.className = "status-msg error";
+      statusEl.textContent = "カードの作成に失敗しました。もう一度お試しください。";
+      btn.disabled = false;
+    }
+  });
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const chars = text.split("");
+    let line = "";
+    const lines = [];
+    for (const ch of chars) {
+      const testLine = line + ch;
+      if (ctx.measureText(testLine).width > maxWidth && line !== "") {
+        lines.push(line);
+        line = ch;
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line);
+    const startY = y - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineHeight));
+  }
+</script>
+
+</body>
+</html>
