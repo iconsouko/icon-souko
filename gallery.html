@@ -18,6 +18,9 @@
     --tag: #C98A3A;
     --border: #E3DACB;
     --error: #B4544A;
+    --shelf-a: #EFE1C9;
+    --shelf-b: #DEC9A6;
+    --shelf-line: rgba(150,110,60,0.35);
   }
   * { box-sizing: border-box; }
   body {
@@ -84,6 +87,30 @@
     border: none; background: none; padding: 5px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--ink-soft);
   }
   .col-toggle button.active { background: var(--surface); color: var(--accent-dark); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  .display-mode-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tone-swatches { display: flex; gap: 8px; }
+  .tone-dot {
+    width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent;
+    cursor: pointer; padding: 0;
+  }
+  .tone-dot.active { border-color: var(--accent-dark); }
+
+  .grid.shelf-mode {
+    padding: 20px 16px;
+    border-radius: 14px;
+    background-image:
+      repeating-linear-gradient(to bottom,
+        var(--shelf-a) 0px, var(--shelf-a) 54px,
+        var(--shelf-line) 54px, var(--shelf-line) 57px,
+        var(--shelf-b) 57px, var(--shelf-b) 108px,
+        var(--shelf-line) 108px, var(--shelf-line) 111px);
+    background-size: 100% 111px;
+  }
+  .grid.shelf-mode .icon-cell {
+    box-shadow: 0 6px 10px -4px rgba(58,53,47,0.35);
+    border: 1px solid rgba(255,255,255,0.6);
+  }
 
   .filter-bar {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
@@ -190,6 +217,19 @@
       <button data-cols="2">2列</button>
       <button data-cols="3">3列</button>
       <button data-cols="4">4列</button>
+    </div>
+  </div>
+  <div class="display-mode-bar">
+    <div class="col-toggle" id="viewModeToggle">
+      <button data-mode="grid">グリッド</button>
+      <button data-mode="shelf">棚に飾る</button>
+    </div>
+    <div class="tone-swatches" id="toneSwatches" style="display:none;">
+      <button class="tone-dot" data-tone="kinme" title="木目調" style="background:linear-gradient(135deg,#EFE1C9,#DEC9A6);"></button>
+      <button class="tone-dot" data-tone="matcha" title="抹茶" style="background:linear-gradient(135deg,#E3ECD9,#D3E0C4);"></button>
+      <button class="tone-dot" data-tone="lavender" title="ラベンダー" style="background:linear-gradient(135deg,#EAE3F5,#DCD0EE);"></button>
+      <button class="tone-dot" data-tone="rose" title="ローズ" style="background:linear-gradient(135deg,#F8E1E6,#F2CBD3);"></button>
+      <button class="tone-dot" data-tone="mono" title="モノトーン" style="background:linear-gradient(135deg,#EDEAE4,#E1DCD3);"></button>
     </div>
   </div>
   <div class="filter-bar">
@@ -366,7 +406,9 @@
   // 列数切り替え
   function setColumns(n) {
     currentCols = n;
-    document.getElementById("grid").className = "grid cols-" + n;
+    const grid = document.getElementById("grid");
+    grid.classList.remove("cols-2", "cols-3", "cols-4");
+    grid.classList.add("cols-" + n);
     document.querySelectorAll("#colToggle button").forEach((b) => {
       b.classList.toggle("active", parseInt(b.dataset.cols, 10) === n);
     });
@@ -375,6 +417,44 @@
   document.querySelectorAll("#colToggle button").forEach((b) => {
     b.addEventListener("click", () => setColumns(parseInt(b.dataset.cols, 10)));
   });
+
+  // 表示モード(グリッド/棚)の切り替え
+  const TONE_MAP = {
+    kinme:    { a: "#EFE1C9", b: "#DEC9A6", line: "rgba(150,110,60,0.35)" },
+    matcha:   { a: "#E3ECD9", b: "#D3E0C4", line: "rgba(90,120,70,0.30)" },
+    lavender: { a: "#EAE3F5", b: "#DCD0EE", line: "rgba(120,90,160,0.30)" },
+    rose:     { a: "#F8E1E6", b: "#F2CBD3", line: "rgba(180,90,110,0.30)" },
+    mono:     { a: "#EDEAE4", b: "#E1DCD3", line: "rgba(90,80,70,0.30)" }
+  };
+  let currentViewMode = localStorage.getItem("iconSoukoViewMode") || "grid";
+  let currentTone = localStorage.getItem("iconSoukoTone") || "kinme";
+
+  function applyTone(tone) {
+    currentTone = tone;
+    const t = TONE_MAP[tone] || TONE_MAP.kinme;
+    document.documentElement.style.setProperty("--shelf-a", t.a);
+    document.documentElement.style.setProperty("--shelf-b", t.b);
+    document.documentElement.style.setProperty("--shelf-line", t.line);
+    localStorage.setItem("iconSoukoTone", tone);
+    document.querySelectorAll(".tone-dot").forEach((d) => d.classList.toggle("active", d.dataset.tone === tone));
+  }
+
+  function applyViewMode(mode) {
+    currentViewMode = mode;
+    document.getElementById("grid").classList.toggle("shelf-mode", mode === "shelf");
+    document.getElementById("toneSwatches").style.display = mode === "shelf" ? "flex" : "none";
+    document.querySelectorAll("#viewModeToggle button").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+    localStorage.setItem("iconSoukoViewMode", mode);
+  }
+
+  document.querySelectorAll("#viewModeToggle button").forEach((b) => {
+    b.addEventListener("click", () => applyViewMode(b.dataset.mode));
+  });
+  document.querySelectorAll(".tone-dot").forEach((d) => {
+    d.addEventListener("click", () => applyTone(d.dataset.tone));
+  });
+  applyTone(currentTone);
+  applyViewMode(currentViewMode);
 
   // ギャラリー読み込み
   async function loadIcons() {
