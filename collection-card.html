@@ -33,8 +33,9 @@
     width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
     font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--bg); color: var(--ink);
   }
-  .field-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .field-row .field { flex: 1 1 140px; min-width: 0; }
+  .field-row { display: block; }
+  .field-row .field { margin-bottom: 14px; }
+  .field-row .field:last-child { margin-bottom: 0; }
 
   .count-badge {
     display: inline-block; background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
@@ -179,7 +180,7 @@
     const count = filtered.length;
     if (streamer) return `${streamer}さんのアイコン、${count}枚集まりました!`;
     if (tag) return `「${tag}」のアイコン、${count}枚`;
-    return `私の推し活アイコン集め、全${count}枚`;
+    return ""; // 絞り込みなしの場合はタイトルなし(空欄)がデフォルト
   }
 
   function updateCountAndTitle() {
@@ -246,49 +247,50 @@
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
 
-      // 背景:深みのあるグラデーション+ふんわりした光の演出
+      // 背景:優しいピンク〜クリームのグラデーション
       const grad = ctx.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, "#5A7C67");
-      grad.addColorStop(0.55, "#4F6D5A");
-      grad.addColorStop(1, "#334A3D");
+      grad.addColorStop(0, "#F8D2DC");
+      grad.addColorStop(0.55, "#F7E1D2");
+      grad.addColorStop(1, "#FBF2E1");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
-      const glow = ctx.createRadialGradient(W * 0.5, 90, 20, W * 0.5, 90, 420);
-      glow.addColorStop(0, "rgba(255,255,255,0.14)");
+      const glow = ctx.createRadialGradient(W * 0.5, 60, 10, W * 0.5, 60, 380);
+      glow.addColorStop(0, "rgba(255,255,255,0.55)");
       glow.addColorStop(1, "rgba(255,255,255,0)");
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
 
-      // 外周の金の飾り枠
-      ctx.strokeStyle = "rgba(201,138,58,0.55)";
+      const ROSE = "#C4786E";       // ローズゴールドの差し色
+      const INK  = "#6B3F45";       // タイトル・文字色(深いローズブラウン)
+
+      // 外周の飾り枠
+      ctx.strokeStyle = "rgba(196,120,110,0.5)";
       ctx.lineWidth = 2;
       roundRectPath(ctx, 20, 20, W - 40, H - 40, 22);
       ctx.stroke();
 
-      // "COLLECTION" ラベル
+      // タイトル上のワンポイント装飾(線+点。文字なし)
       ctx.textAlign = "center";
-      ctx.fillStyle = "#C98A3A";
-      ctx.font = "700 15px 'Zen Kaku Gothic New', sans-serif";
-      ctx.save();
-      ctx.letterSpacing = "6px";
-      ctx.fillText("C  O  L  L  E  C  T  I  O  N", W / 2, 70);
-      ctx.restore();
-
-      // 小さな飾りライン
-      ctx.strokeStyle = "rgba(201,138,58,0.7)";
+      const ornamentY = 78;
+      ctx.strokeStyle = "rgba(196,120,110,0.7)";
       ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(W / 2 - 40, 84); ctx.lineTo(W / 2 + 40, 84); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W / 2 - 54, ornamentY); ctx.lineTo(W / 2 - 14, ornamentY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W / 2 + 14, ornamentY); ctx.lineTo(W / 2 + 54, ornamentY); ctx.stroke();
+      ctx.fillStyle = ROSE;
+      ctx.beginPath(); ctx.arc(W / 2, ornamentY, 3.5, 0, Math.PI * 2); ctx.fill();
 
-      // タイトル(白・影つき)
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.25)";
-      ctx.shadowBlur = 12;
-      ctx.shadowOffsetY = 3;
-      ctx.font = "700 42px 'Zen Maru Gothic', sans-serif";
-      const title = document.getElementById("titleInput").value || suggestTitle(filtered);
-      wrapText(ctx, title, W / 2, 145, W - 120, 52);
-      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      // タイトル(絞り込みがある場合のみ表示)
+      const title = document.getElementById("titleInput").value.trim();
+      let gridTop;
+      if (title) {
+        ctx.fillStyle = INK;
+        ctx.font = "700 40px 'Zen Maru Gothic', sans-serif";
+        wrapText(ctx, title, W / 2, 150, W - 120, 50);
+        gridTop = 250;
+      } else {
+        gridTop = 150;
+      }
 
       // 台紙(白っぽい半透明パネル)でグリッドを引き立てる
       const cols = 4;
@@ -297,13 +299,12 @@
       const gridWidthArea = W - 100;
       const cellSize = (gridWidthArea - panelPad * 2 - gap * (cols - 1)) / cols;
       const rows = Math.ceil(images.length / cols);
-      const gridTop = 250;
       const panelHeight = rows * cellSize + (rows - 1) * gap + panelPad * 2;
 
-      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
       roundRectPath(ctx, 50, gridTop, W - 100, panelHeight, 20);
       ctx.fill();
-      ctx.strokeStyle = "rgba(201,138,58,0.5)";
+      ctx.strokeStyle = "rgba(196,120,110,0.45)";
       ctx.lineWidth = 1.5;
       roundRectPath(ctx, 50, gridTop, W - 100, panelHeight, 20);
       ctx.stroke();
@@ -318,8 +319,7 @@
         ctx.clip();
         drawCoverImage(ctx, img, x, y, cellSize, cellSize);
         ctx.restore();
-        // 各アイコンに薄い金枠
-        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.strokeStyle = "rgba(255,255,255,0.85)";
         ctx.lineWidth = 1.5;
         roundRectPath(ctx, x, y, cellSize, cellSize, 12);
         ctx.stroke();
@@ -328,24 +328,21 @@
       let footerY = gridTop + panelHeight + 34;
       if (remainCount > 0) {
         ctx.font = "400 19px 'Zen Kaku Gothic New', sans-serif";
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillStyle = "rgba(107,63,69,0.75)";
         ctx.fillText(`ほか ${remainCount}枚`, W / 2, footerY);
-        footerY += 30;
       }
 
-      // 下部の飾りライン+ブランド
-      ctx.strokeStyle = "rgba(201,138,58,0.6)";
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(W / 2 - 60, H - 66); ctx.lineTo(W / 2 + 60, H - 66); ctx.stroke();
-
+      // 下部:日付(中央・控えめ)+ ブランド名(右詰め)。枠線とは十分な余白をとる
+      ctx.textAlign = "right";
       ctx.font = "500 19px 'Zen Maru Gothic', sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.fillText("🗃️ アイコン倉庫さん", W / 2, H - 40);
+      ctx.fillStyle = INK;
+      ctx.fillText("🗃️ アイコン倉庫さん", W - 50, H - 56);
 
+      ctx.textAlign = "center";
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
       ctx.font = "400 13px 'Zen Kaku Gothic New', sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.fillText(dateStr, W / 2, H - 20);
+      ctx.fillStyle = "rgba(107,63,69,0.6)";
+      ctx.fillText(dateStr, W / 2, H - 56);
 
       canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
