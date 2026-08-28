@@ -120,6 +120,14 @@
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-actions button { flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; cursor: pointer; }
   .btn-cancel { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
+  .btn-cancel.btn-done {
+    background: var(--accent); border: 1px solid var(--accent); color: #fff; font-weight: 500;
+    animation: doneGlow 1.8s ease-in-out infinite;
+  }
+  @keyframes doneGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(79,109,90,0.45); }
+    50% { box-shadow: 0 0 0 6px rgba(79,109,90,0); }
+  }
   .btn-save { background: var(--accent); border: none; color: #fff; font-weight: 500; }
   .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
   .modal-error { color: var(--error); font-size: 12.5px; margin-top: 10px; }
@@ -272,8 +280,11 @@
       <div class="hint">「毎月」「誕生日記念」など、あとで絞り込みに使えます</div>
     </div>
     <div class="field">
-      <label for="monthInput" id="monthLabel">受け取った月</label>
-      <input type="month" id="monthInput">
+      <label for="monthInputYear" id="monthLabel">受け取った月</label>
+      <div class="month-select-row">
+        <select id="monthInputYear"><option value="">年</option></select>
+        <select id="monthInputMonth"><option value="">月</option></select>
+      </div>
     </div>
     <div class="modal-error" id="modalError"></div>
     <p class="modal-success" id="modalSuccess"></p>
@@ -328,7 +339,7 @@
 </div>
 
 <!-- カード作成フローティングボタン -->
-<button class="card-fab" id="openCardModalBtn">✨ カードをつくる</button>
+<button class="card-fab" id="openCardModalBtn">カードをつくる</button>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -541,6 +552,8 @@
     document.getElementById("galToYear").innerHTML = '<option value="">終了:年</option>' + yearOptions;
     document.getElementById("galFromMonth").innerHTML = '<option value="">月</option>' + monthOptions;
     document.getElementById("galToMonth").innerHTML = '<option value="">月</option>' + monthOptions;
+    document.getElementById("monthInputYear").innerHTML = '<option value="">年</option>' + yearOptions;
+    document.getElementById("monthInputMonth").innerHTML = '<option value="">月</option>' + monthOptions;
   }
   function getGalFromValue() {
     const y = document.getElementById("galFromYear").value, m = document.getElementById("galFromMonth").value;
@@ -652,10 +665,14 @@
     document.getElementById("fileInput").value = "";
     document.getElementById("streamerInput").value = "";
     document.getElementById("tagInput").value = "";
-    document.getElementById("monthInput").value = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    document.getElementById("monthInputYear").value = String(now.getFullYear());
+    document.getElementById("monthInputMonth").value = String(now.getMonth() + 1).padStart(2, "0");
     document.getElementById("modalError").textContent = "";
     document.getElementById("modalSuccess").textContent = "";
     document.getElementById("cancelUploadBtn").textContent = "キャンセル";
+    document.getElementById("cancelUploadBtn").classList.remove("btn-done");
+    document.getElementById("saveUploadBtn").textContent = "保存する";
     uploadSessionCount = 0;
     uploadSessionLast = null;
     loadStreamerList();
@@ -709,7 +726,9 @@
     const fileInput = document.getElementById("fileInput");
     const streamerName = document.getElementById("streamerInput").value.trim();
     const tagRaw = document.getElementById("tagInput").value.trim();
-    const receivedMonth = document.getElementById("monthInput").value;
+    const monthY = document.getElementById("monthInputYear").value;
+    const monthM = document.getElementById("monthInputMonth").value;
+    const receivedMonth = monthY && monthM ? `${monthY}-${monthM}` : "";
     const errorEl = document.getElementById("modalError");
     const saveBtn = document.getElementById("saveUploadBtn");
     if (!fileInput.files[0]) { errorEl.textContent = "画像ファイルを選択してください。"; return; }
@@ -729,7 +748,9 @@
       for (const tag of reasonTags) await ensureCandidate("reasonTags", tag);
       await loadIcons(); await loadTagList();
 
-      const totalCount = allIcons.length;
+      const totalCount = currentTab === "received"
+        ? allIcons.filter((i) => i.streamerName === streamerName).length
+        : allIcons.length;
       uploadSessionCount += 1;
       uploadSessionLast = { imageUrl, streamerName, totalCount, verb: cfg.celebrationVerb };
 
@@ -737,6 +758,8 @@
       document.getElementById("fileInput").value = "";
       document.getElementById("modalSuccess").textContent = `✓ 保存しました(${uploadSessionCount}枚目)`;
       document.getElementById("cancelUploadBtn").textContent = "完了";
+      document.getElementById("cancelUploadBtn").classList.add("btn-done");
+      document.getElementById("saveUploadBtn").textContent = "続けて保存する";
     } catch (err) {
       console.error(err); errorEl.textContent = "保存に失敗しました。もう一度お試しください。";
     } finally { saveBtn.disabled = false; saveBtn.textContent = "保存する"; }
