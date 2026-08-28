@@ -73,6 +73,23 @@
   }
   .period-tilde { color: var(--ink-soft); font-size: 13px; }
   .period-clear { background: none; border: none; color: var(--ink-soft); font-size: 12px; text-decoration: underline; cursor: pointer; margin-left: auto; }
+
+  .card-fab {
+    position: fixed; right: 20px; bottom: 24px; z-index: 50;
+    display: none;
+    padding: 14px 20px;
+    border: 1px solid rgba(196,120,110,0.4);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #F6C6D3, #F3DCC0);
+    color: #6B3F45;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -6px rgba(107,63,69,0.45);
+  }
+  .card-fab.show { display: block; }
+  .card-fab:hover { box-shadow: 0 10px 24px -6px rgba(107,63,69,0.55); }
   .card-cta-btn:hover { opacity: 0.9; }
 
   .grid { display: grid; gap: 12px; }
@@ -175,10 +192,7 @@
   <!-- もらった/つくった 共通ギャラリービュー -->
   <div id="galleryView">
     <div class="toolbar">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button>
-        <button class="upload-btn card-cta-btn" id="openCardModalBtn" style="background:var(--tag);">このアイコンたちでカードをつくる</button>
-      </div>
+      <button class="upload-btn" id="openUploadBtn">＋ アイコンを追加</button>
       <div class="col-toggle" id="colToggle">
         <button data-cols="2">2列</button>
         <button data-cols="3">3列</button>
@@ -220,7 +234,7 @@
         <input type="text" id="cardTitleInput" placeholder="タイトルを入力(空欄でも可)">
       </div>
       <div class="modal-actions">
-        <button class="btn-cancel" id="cardModalCancelBtn">キャンセル</button>
+        <button class="btn-cancel" id="cardModalCancelBtn">もどる</button>
         <button class="btn-save" id="cardGenerateBtn">カードをつくる</button>
       </div>
       <p class="status-msg" id="cardStatusMsg"></p>
@@ -311,6 +325,9 @@
   </div>
 </div>
 
+<!-- カード作成フローティングボタン -->
+<button class="card-fab" id="openCardModalBtn">✨ カードをつくる</button>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -364,6 +381,7 @@
     loadTagList();
     populateGalleryPeriodSelects();
     loadIcons();
+    document.getElementById("openCardModalBtn").classList.toggle("show", currentTab === "received");
   });
 
   document.getElementById("signoutBtn").addEventListener("click", () => signOut(auth));
@@ -383,7 +401,7 @@
       btn.classList.add("active");
       currentTab = btn.dataset.tab;
       document.getElementById("filterStreamer").style.display = currentTab === "received" ? "" : "none";
-      document.getElementById("openCardModalBtn").style.display = currentTab === "received" ? "" : "none";
+      document.getElementById("openCardModalBtn").classList.toggle("show", currentTab === "received");
       loadIcons();
     });
   });
