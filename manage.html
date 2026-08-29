@@ -251,8 +251,8 @@
           <div class="item-count" data-id="${c.id}">${c.count === null ? "件数を確認中…" : c.count + "枚のアイコンで使用中"}</div>
         </div>
         <div class="item-actions">
-          <button class="btn-edit-sm">編集</button>
           <button class="btn-delete-sm">削除</button>
+          <button class="btn-edit-sm">編集</button>
         </div>`;
       row.querySelector(".btn-edit-sm").addEventListener("click", () => showRenameForm(row, c));
       row.querySelector(".btn-delete-sm").addEventListener("click", () => {
