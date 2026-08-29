@@ -109,7 +109,9 @@
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.45); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
   .modal-overlay.show { display: flex; }
   .modal { background: var(--surface); border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 100%; max-height: 90vh; overflow-y: auto; }
-  .modal h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0 0 18px; }
+  .modal h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0 0 4px; }
+  .quota-indicator { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 16px; }
+  .quota-indicator.quota-full { color: var(--error); font-weight: 500; }
   .field { margin-bottom: 16px; text-align: left; }
   .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
   .field input[type="text"], .field input[type="month"], .field input[type="file"] {
@@ -301,6 +303,7 @@
 <div class="modal-overlay" id="uploadModal">
   <div class="modal">
     <h2 id="modalTitle">アイコンを追加</h2>
+    <p class="quota-indicator" id="quotaIndicator"></p>
     <div class="field">
       <label for="fileInput">画像ファイル</label>
       <input type="file" id="fileInput" accept="image/*">
@@ -402,8 +405,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDocs,
-    query, orderBy, serverTimestamp
+    getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDocs, getDoc,
+    query, orderBy, serverTimestamp, getCountFromServer
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
@@ -422,6 +425,34 @@
   const storage = getStorage(app);
 
   let currentUser = null;
+  let iconLimit = 40;
+  let limitMessage = "無料でご利用いただける上限に達しました。";
+
+  async function loadIconLimit() {
+    try {
+      const limitsSnap = await getDoc(doc(db, "config", "limits"));
+      if (limitsSnap.exists()) {
+        const d = limitsSnap.data();
+        if (typeof d.freeIconLimit === "number") iconLimit = d.freeIconLimit;
+        if (typeof d.limitMessage === "string" && d.limitMessage) limitMessage = d.limitMessage;
+      }
+      // 個別に上限が引き上げられているユーザーは、その値で上書きする
+      const userLimitSnap = await getDoc(doc(db, "userLimits", currentUser.uid));
+      if (userLimitSnap.exists() && typeof userLimitSnap.data().limit === "number") {
+        iconLimit = userLimitSnap.data().limit;
+      }
+    } catch (err) {
+      console.warn("上限設定の読み込みに失敗しました。デフォルト値を使用します。", err);
+    }
+  }
+
+  async function getCurrentIconCount() {
+    const [receivedSnap, createdSnap] = await Promise.all([
+      getCountFromServer(collection(db, "users", currentUser.uid, "receivedIcons")),
+      getCountFromServer(collection(db, "users", currentUser.uid, "createdIcons"))
+    ]);
+    return receivedSnap.data().count + createdSnap.data().count;
+  }
 
   const TAB_CONFIG = {
     received: {
@@ -446,6 +477,7 @@
   onAuthStateChanged(auth, (user) => {
     if (!user) { window.location.href = "index.html"; return; }
     currentUser = user;
+    loadIconLimit();
     setColumns(currentCols);
     loadStreamerList();
     loadTagList();
@@ -728,7 +760,7 @@
     document.getElementById("lockOverlay").classList.remove("show");
   }
 
-  document.getElementById("openUploadBtn").addEventListener("click", () => {
+  document.getElementById("openUploadBtn").addEventListener("click", async () => {
     uploadGeneration += 1;
     sessionIcons = [];
     const cfg = TAB_CONFIG[currentTab];
@@ -748,11 +780,26 @@
     document.getElementById("saveUploadBtn").textContent = "保存する";
     loadStreamerList();
     uploadModal.classList.add("show");
+    updateQuotaIndicator();
   });
   document.getElementById("cancelUploadBtn").addEventListener("click", () => {
     uploadModal.classList.remove("show");
     uploadGeneration += 1; // 進行中の保存処理があっても、この画面には反映させない
   });
+
+  async function updateQuotaIndicator() {
+    const el = document.getElementById("quotaIndicator");
+    el.textContent = "枚数を確認しています…";
+    el.classList.remove("quota-full");
+    try {
+      const count = await getCurrentIconCount();
+      el.textContent = `現在 ${count} / ${iconLimit}枚`;
+      el.classList.toggle("quota-full", count >= iconLimit);
+    } catch (err) {
+      console.warn(err);
+      el.textContent = "";
+    }
+  }
 
   function resizeImage(file) {
     return new Promise((resolve, reject) => {
@@ -823,6 +870,25 @@
     if (!fileInput.files[0]) { errorEl.textContent = "画像ファイルを選択してください。"; return; }
     if (cfg.streamerRequired && !streamerName) { errorEl.textContent = `${cfg.streamerLabel}を入力してください。`; return; }
     errorEl.textContent = "";
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "確認中…";
+    let currentCount;
+    try {
+      currentCount = await getCurrentIconCount();
+    } catch (err) {
+      console.warn(err);
+      currentCount = 0; // 確認に失敗した場合は通常通り保存を試みる(通信断で保存自体ができなくなることを避けるため)
+    }
+    if (currentCount >= iconLimit) {
+      errorEl.textContent = limitMessage;
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存する";
+      updateQuotaIndicator();
+      return;
+    }
+    saveBtn.textContent = "保存する";
+
     const myGeneration = uploadGeneration; // この保存処理が「今の画面」のものかどうかを後で判定するための番号
 
     uploadModal.classList.remove("show");
@@ -880,6 +946,7 @@
     document.getElementById("fileInput").value = "";
     document.getElementById("modalError").textContent = "";
     uploadModal.classList.add("show"); // 入力内容(ライバー名・タグ・月)は維持したまま①に戻る
+    updateQuotaIndicator();
   });
   document.getElementById("celebBackToGalleryBtn").addEventListener("click", () => {
     document.getElementById("celebrationOverlay").classList.remove("show");
