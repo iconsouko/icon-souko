@@ -928,6 +928,7 @@
     document.getElementById("cardTitleInput").value = suggestCardTitle();
     document.getElementById("cardStatusMsg").textContent = "";
     document.getElementById("cardResultPanel").style.display = "none";
+    document.getElementById("cardGenerateBtn").style.display = "";
     document.getElementById("cardGenerateBtn").disabled = currentFilteredIcons.length === 0;
     cardModal.classList.add("show");
   });
@@ -1073,6 +1074,7 @@
         document.getElementById("cardResultImg").src = url;
         document.getElementById("cardDownloadBtn").href = url;
         document.getElementById("cardResultPanel").style.display = "block";
+        btn.style.display = "none"; // 完成後は「カードをつくる」ボタンを隠し、混乱を防ぐ
 
         const shareBtn = document.getElementById("cardShareBtn");
         const file = new File([blob], "icon-souko-collection-card.png", { type: "image/png" });
