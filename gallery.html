@@ -154,6 +154,39 @@
   .celebration-card .sub-msg { font-size: 13px; opacity: 0.85; margin: 0 0 28px; }
   .celebration-card .brand { font-family: 'Zen Maru Gothic', sans-serif; font-size: 12px; opacity: 0.7; margin-bottom: 20px; }
   .celebration-close { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 24px; border-radius: 10px; font-size: 14px; cursor: pointer; }
+  .celebration-actions { display: flex; gap: 10px; margin-top: 4px; }
+  .celebration-actions button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: 'Zen Kaku Gothic New', sans-serif; }
+  .celeb-btn-back { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; }
+  .celeb-btn-continue { background: #fff; border: none; color: var(--accent-dark); font-weight: 500; }
+
+  /* 保存中のロック画面 */
+  .lock-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.55);
+    align-items: center; justify-content: center; z-index: 300; padding: 24px;
+  }
+  .lock-overlay.show { display: flex; }
+  .lock-box { text-align: center; color: #fff; }
+  .lock-spinner {
+    width: 40px; height: 40px; margin: 0 auto 18px;
+    border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%;
+    animation: lockSpin 0.9s linear infinite;
+  }
+  @keyframes lockSpin { to { transform: rotate(360deg); } }
+  .lock-message { font-family: 'Zen Maru Gothic', sans-serif; font-size: 15px; }
+
+  /* 完了サマリー画面 */
+  .summary-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.55);
+    align-items: center; justify-content: center; z-index: 250; padding: 24px;
+  }
+  .summary-overlay.show { display: flex; }
+  .summary-box { background: var(--surface); border-radius: 18px; padding: 26px 22px; max-width: 400px; width: 100%; max-height: 85vh; overflow-y: auto; text-align: center; }
+  .summary-box h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0 0 6px; }
+  .summary-box .summary-sub { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 18px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+  .summary-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
+  .summary-back-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 500; cursor: pointer; }
+  .summary-back-btn:hover { background: var(--accent-dark); }
 
   /* コレクションカードタブ */
   .card-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
@@ -162,7 +195,11 @@
   .card-field-row .field { margin-bottom: 14px; }
   .card-field-row .field:last-child { margin-bottom: 0; }
   .month-select-row { display: flex; gap: 8px; }
-  .month-select-row select { flex: 1; min-width: 0; }
+  .month-select-row select {
+    flex: 1; min-width: 0; padding: 13px 12px; font-size: 17px;
+    border-radius: 8px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; background: var(--bg); color: var(--ink);
+  }
   .count-badge { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12.5px; color: var(--ink-soft); }
   .generate-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 4px; }
   .generate-btn:hover { background: var(--accent-dark); }
@@ -287,7 +324,6 @@
       </div>
     </div>
     <div class="modal-error" id="modalError"></div>
-    <p class="modal-success" id="modalSuccess"></p>
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelUploadBtn">キャンセル</button>
       <button class="btn-save" id="saveUploadBtn">保存する</button>
@@ -327,14 +363,35 @@
   </div>
 </div>
 
-<!-- アップロード演出 -->
+<!-- ② 保存ごとの演出 -->
 <div class="celebration-overlay" id="celebrationOverlay">
   <div class="celebration-card">
     <img class="icon-preview" id="celebrationImg" src="" alt="">
     <p class="big-msg" id="celebrationMsg"></p>
     <p class="sub-msg" id="celebrationSub"></p>
     <div class="brand">🗃️ アイコン倉庫さん</div>
-    <button class="celebration-close" id="celebrationCloseBtn">とじる</button>
+    <div class="celebration-actions">
+      <button class="celeb-btn-back" id="celebBackToGalleryBtn">一覧にもどる</button>
+      <button class="celeb-btn-continue" id="celebContinueBtn">続けて保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 完了サマリー -->
+<div class="summary-overlay" id="summaryOverlay">
+  <div class="summary-box">
+    <h2>おつかれさまでした!</h2>
+    <p class="summary-sub" id="summarySub"></p>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <button class="summary-back-btn" id="summaryBackBtn">一覧にもどる</button>
+  </div>
+</div>
+
+<!-- 保存中のロック画面 -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <div class="lock-spinner"></div>
+    <p class="lock-message" id="lockMessage"></p>
   </div>
 </div>
 
@@ -653,12 +710,27 @@
 
   // ===== アップロード =====
   const uploadModal = document.getElementById("uploadModal");
-  let uploadSessionCount = 0;
-  let uploadSessionLast = null; // { imageUrl, streamerName, verb, totalCount }
+  let sessionIcons = [];   // このセッションで保存したアイコン(サマリー表示用)
   let uploadGeneration = 0; // モーダルを開き直すたびに増分。古い保存処理の結果を無視するための番号
+
+  const LOCK_MESSAGES = [
+    "アイコンを大切にしまっています…",
+    "倉庫の棚を整えています…",
+    "そっと収納しています…",
+    "ラベルを貼っています…",
+    "推しの魅力を記録しています…"
+  ];
+  function showLockOverlay() {
+    document.getElementById("lockMessage").textContent = LOCK_MESSAGES[Math.floor(Math.random() * LOCK_MESSAGES.length)];
+    document.getElementById("lockOverlay").classList.add("show");
+  }
+  function hideLockOverlay() {
+    document.getElementById("lockOverlay").classList.remove("show");
+  }
 
   document.getElementById("openUploadBtn").addEventListener("click", () => {
     uploadGeneration += 1;
+    sessionIcons = [];
     const cfg = TAB_CONFIG[currentTab];
     document.getElementById("modalTitle").textContent = cfg.modalTitle;
     document.getElementById("streamerLabel").textContent = cfg.streamerLabel;
@@ -671,21 +743,15 @@
     document.getElementById("monthInputYear").value = String(now.getFullYear());
     document.getElementById("monthInputMonth").value = String(now.getMonth() + 1).padStart(2, "0");
     document.getElementById("modalError").textContent = "";
-    document.getElementById("modalSuccess").textContent = "";
     document.getElementById("cancelUploadBtn").textContent = "キャンセル";
     document.getElementById("cancelUploadBtn").classList.remove("btn-done");
     document.getElementById("saveUploadBtn").textContent = "保存する";
-    uploadSessionCount = 0;
-    uploadSessionLast = null;
     loadStreamerList();
     uploadModal.classList.add("show");
   });
   document.getElementById("cancelUploadBtn").addEventListener("click", () => {
     uploadModal.classList.remove("show");
     uploadGeneration += 1; // 進行中の保存処理があっても、この画面には反映させない
-    if (uploadSessionCount > 0 && uploadSessionLast) {
-      showCelebration(uploadSessionLast.imageUrl, uploadSessionLast.streamerName, uploadSessionLast.totalCount, uploadSessionLast.verb);
-    }
   });
 
   function resizeImage(file) {
@@ -758,7 +824,11 @@
     if (cfg.streamerRequired && !streamerName) { errorEl.textContent = `${cfg.streamerLabel}を入力してください。`; return; }
     errorEl.textContent = "";
     const myGeneration = uploadGeneration; // この保存処理が「今の画面」のものかどうかを後で判定するための番号
-    saveBtn.disabled = true; saveBtn.textContent = "保存中…";
+
+    uploadModal.classList.remove("show");
+    showLockOverlay();
+    saveBtn.disabled = true;
+
     try {
       const reasonTags = tagRaw ? tagRaw.split(/[,、]/).map((t) => t.trim()).filter(Boolean) : [];
 
@@ -773,7 +843,6 @@
         15000, "データの保存がタイムアウトしました。"
       );
 
-      // ライバー名・タグ候補の確認は1回の通信+並列でまとめて行う(高速化)
       await Promise.all([
         currentTab === "received" && streamerName ? ensureCandidates("streamers", [streamerName]) : Promise.resolve(),
         ensureCandidates("reasonTags", reasonTags)
@@ -781,35 +850,57 @@
 
       await loadIcons(); await loadTagList();
 
-      // ここまでで裏側の保存自体は完了している。ただし、この処理が始まった後に
-      // キャンセル・再オープンされていたら(世代が変わっていたら)、今の画面には一切反映しない
+      // この処理が始まった後にキャンセルされていたら(世代が変わっていたら)、今の画面には一切反映しない
       if (myGeneration !== uploadGeneration) return;
 
       const totalCount = currentTab === "received"
         ? allIcons.filter((i) => i.streamerName === streamerName).length
         : allIcons.length;
-      uploadSessionCount += 1;
-      uploadSessionLast = { imageUrl, streamerName, totalCount, verb: cfg.celebrationVerb };
+      sessionIcons.push({ imageUrl, streamerName });
 
-      // モーダルは閉じず、画像ファイルの選択欄だけをクリアして次の1枚に備える
-      document.getElementById("fileInput").value = "";
-      document.getElementById("modalSuccess").textContent = `✓ 保存しました(${uploadSessionCount}枚目)`;
-      document.getElementById("cancelUploadBtn").textContent = "完了";
-      document.getElementById("cancelUploadBtn").classList.add("btn-done");
-      document.getElementById("saveUploadBtn").textContent = "続けて保存する";
+      hideLockOverlay();
+      showCelebration(imageUrl, streamerName, totalCount, cfg.celebrationVerb);
     } catch (err) {
       console.error(err);
       if (myGeneration === uploadGeneration) {
+        hideLockOverlay();
         errorEl.textContent = err && err.message && err.message.includes("タイムアウト")
           ? err.message
           : "保存に失敗しました。もう一度お試しください。";
+        uploadModal.classList.add("show"); // ①に戻ってエラーを表示し、再試行できるようにする
       }
     } finally {
-      if (myGeneration === uploadGeneration) {
-        saveBtn.disabled = false;
-        saveBtn.textContent = uploadSessionCount > 0 ? "続けて保存する" : "保存する";
-      }
+      if (myGeneration === uploadGeneration) saveBtn.disabled = false;
     }
+  });
+
+  // ② 演出画面のボタン
+  document.getElementById("celebContinueBtn").addEventListener("click", () => {
+    document.getElementById("celebrationOverlay").classList.remove("show");
+    document.getElementById("fileInput").value = "";
+    document.getElementById("modalError").textContent = "";
+    uploadModal.classList.add("show"); // 入力内容(ライバー名・タグ・月)は維持したまま①に戻る
+  });
+  document.getElementById("celebBackToGalleryBtn").addEventListener("click", () => {
+    document.getElementById("celebrationOverlay").classList.remove("show");
+    showSummary();
+  });
+
+  // ③ サマリー画面
+  function showSummary() {
+    const grid = document.getElementById("summaryGrid");
+    grid.innerHTML = "";
+    sessionIcons.forEach((icon) => {
+      const img = document.createElement("img");
+      img.src = icon.imageUrl;
+      img.alt = icon.streamerName || "";
+      grid.appendChild(img);
+    });
+    document.getElementById("summarySub").textContent = `今回、${sessionIcons.length}枚のアイコンを保存しました。`;
+    document.getElementById("summaryOverlay").classList.add("show");
+  }
+  document.getElementById("summaryBackBtn").addEventListener("click", () => {
+    document.getElementById("summaryOverlay").classList.remove("show");
   });
 
   function showCelebration(imageUrl, streamerName, count, verb) {
@@ -819,7 +910,6 @@
     document.getElementById("celebrationSub").textContent = "また新しい思い出が増えました";
     document.getElementById("celebrationOverlay").classList.add("show");
   }
-  document.getElementById("celebrationCloseBtn").addEventListener("click", () => document.getElementById("celebrationOverlay").classList.remove("show"));
 
   // ===== コレクションカード(「もらったアイコン」の絞り込み結果を使用) =====
   const cardModal = document.getElementById("cardModal");
