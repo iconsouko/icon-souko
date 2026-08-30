@@ -110,7 +110,7 @@
   .empty-state { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
   .empty-state p { font-size: 14px; line-height: 1.8; }
 
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.45); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.45); align-items: center; justify-content: center; padding: 20px; z-index: 100; overflow-y: auto; }
   .modal-overlay.show { display: flex; }
   .modal { background: var(--surface); border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 17px; margin: 0 0 4px; }
@@ -315,7 +315,6 @@
         <p class="result-hint">画像を長押ししても保存できます</p>
         <div class="result-actions">
           <a class="btn-primary" id="cardDownloadBtn" download="icon-souko-collection-card.png">画像を保存</a>
-          <button class="btn-secondary" id="cardShareBtn" style="display:none;">共有する</button>
         </div>
       </div>
     </div>
@@ -783,6 +782,34 @@
       progressEl.style.display = "none";
     }
   });
+
+  // iOS Safariでは、入力欄にフォーカスしてキーボードが表示されると、見えている範囲(ビジュアルビューポート)
+  // だけが縮むのに対し、position:fixedの要素は元のレイアウト基準のまま動かないことがあり、
+  // 見た目の位置とタップ判定の位置がズレて「ボタンが押せない」状態になることがある。
+  // window.visualViewportを使い、キーボードの開閉に合わせてモーダルの表示範囲を実際に見えている範囲へ追従させる。
+  function setupKeyboardSafeModals() {
+    if (!window.visualViewport) return;
+    const vv = window.visualViewport;
+    const overlaySelectors = ".modal-overlay.show";
+    function reposition() {
+      document.querySelectorAll(overlaySelectors).forEach((el) => {
+        el.style.height = vv.height + "px";
+        el.style.top = vv.offsetTop + "px";
+      });
+    }
+    vv.addEventListener("resize", reposition);
+    vv.addEventListener("scroll", reposition);
+    // モーダルを開いた瞬間にも、その時点のビューポートに合わせておく
+    document.addEventListener("focusin", (e) => {
+      if (e.target.closest(".modal-overlay")) setTimeout(reposition, 50);
+    });
+    // モーダルが開かれた瞬間(showクラス付与時)にも、前回のズレた値を引きずらないよう反映しておく
+    const observer = new MutationObserver(() => reposition());
+    document.querySelectorAll(".modal-overlay").forEach((el) => {
+      observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    });
+  }
+  setupKeyboardSafeModals();
 
   // 三点メニュー
   const menuToggle = document.getElementById("menuToggle");
@@ -1508,13 +1535,6 @@
         document.getElementById("cardDownloadBtn").href = url;
         document.getElementById("cardResultPanel").style.display = "block";
         btn.style.display = "none"; // 完成後は「カードをつくる」ボタンを隠し、混乱を防ぐ
-
-        const shareBtn = document.getElementById("cardShareBtn");
-        const file = new File([blob], "icon-souko-collection-card.png", { type: "image/png" });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          shareBtn.style.display = "block";
-          shareBtn.onclick = () => navigator.share({ files: [file], title: "アイコン倉庫さん" }).catch(() => {});
-        } else { shareBtn.style.display = "none"; }
 
         statusEl.textContent = "";
         btn.disabled = false;
