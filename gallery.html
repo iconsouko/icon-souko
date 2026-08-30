@@ -244,6 +244,7 @@
     <button class="menu-toggle" id="menuToggle" aria-label="メニュー">⋯</button>
     <div class="menu-dropdown" id="menuDropdown">
       <a href="manage.html">ライバー・タグ管理</a>
+      <a href="admin.html" id="adminMenuLink" style="display:none;">管理者ページ</a>
       <button id="openPwaGuideBtn">ホーム画面に追加する方法</button>
       <a href="terms.html">利用規約</a>
       <button id="signoutBtn" class="menu-item-danger">ログアウト</button>
@@ -468,7 +469,7 @@
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDocs, getDoc,
-    query, orderBy, serverTimestamp, getCountFromServer
+    query, orderBy, serverTimestamp, getCountFromServer, increment
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
@@ -485,6 +486,9 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
+
+  // admin.htmlと同じUIDをここに設定すると、メニューに管理者ページへのリンクが表示される(任意)
+  const ADMIN_UID = "i3jkZAakklVUFYd4deb51ecU4dI3";
 
   let currentUser = null;
   let iconLimit = 40;
@@ -518,13 +522,13 @@
 
   const TAB_CONFIG = {
     received: {
-      collectionName: "receivedIcons", streamerLabel: "ライバー名", streamerPlaceholder: "例:れいかさん",
+      collectionName: "receivedIcons", countField: "receivedIconCount", streamerLabel: "ライバー名", streamerPlaceholder: "例:れいかさん",
       streamerRequired: true, monthLabel: "受け取った月", modalTitle: "もらったアイコンを追加",
       emptyText: "まだアイコンが登録されていません。<br>推しからもらったアイコンを、ここに集めていきましょう。",
       celebrationVerb: "さんのアイコン",
     },
     created: {
-      collectionName: "createdIcons", streamerLabel: "メモ(任意・エピソードなど)", streamerPlaceholder: "例:○○コラボ配信の記念アイコン",
+      collectionName: "createdIcons", countField: "createdIconCount", streamerLabel: "メモ(任意・エピソードなど)", streamerPlaceholder: "例:○○コラボ配信の記念アイコン",
       streamerRequired: false, monthLabel: "作成した月", modalTitle: "つくったアイコンを追加",
       emptyText: "まだ記録がありません。<br>今まで作ってきたアイコンを、ここにアーカイブしていきましょう。",
       celebrationVerb: "つくったアイコン",
@@ -536,9 +540,23 @@
   let currentFilteredIcons = [];   // 画面に今表示されている絞り込み結果(カード作成で使用)
   let currentCols = parseInt(localStorage.getItem("iconSoukoCols") || "2", 10);
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = "index.html"; return; }
+    // 管理者がこのアカウントの利用を停止していないか確認する
+    try {
+      const blockSnap = await getDoc(doc(db, "blocklist", user.uid));
+      if (blockSnap.exists()) {
+        await signOut(auth);
+        window.location.href = "index.html?blocked=1";
+        return;
+      }
+    } catch (err) {
+      console.warn("利用停止状態の確認に失敗:", err);
+    }
     currentUser = user;
+    if (ADMIN_UID && user.uid === ADMIN_UID) {
+      document.getElementById("adminMenuLink").style.display = "block";
+    }
     loadIconLimit();
     setColumns(currentCols);
     loadStreamerList();
@@ -675,8 +693,21 @@
     const prevTag = tagSel.value;
     const streamers = [...new Set(allIcons.map((i) => i.streamerName).filter(Boolean))].sort();
     const tags = [...new Set(allIcons.flatMap((i) => i.reasonTags || []))].sort();
-    streamerSel.innerHTML = '<option value="">ライバー:すべて</option>' + streamers.map((s) => `<option value="${s}">${s}</option>`).join("");
-    tagSel.innerHTML = '<option value="">タグ:すべて</option>' + tags.map((t) => `<option value="${t}">${t}</option>`).join("");
+    // ライバー名・タグは利用者の自由入力値なので、innerHTMLでの文字列組み立てではなく
+    // createElement + textContentで組み立てる(XSS対策)
+    function buildOptions(selectEl, values, allLabel) {
+      selectEl.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = ""; allOpt.textContent = allLabel;
+      selectEl.appendChild(allOpt);
+      values.forEach((v) => {
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = v;
+        selectEl.appendChild(opt);
+      });
+    }
+    buildOptions(streamerSel, streamers, "ライバー:すべて");
+    buildOptions(tagSel, tags, "タグ:すべて");
     streamerSel.value = streamers.includes(prevStreamer) ? prevStreamer : "";
     tagSel.value = tags.includes(prevTag) ? prevTag : "";
   }
@@ -713,12 +744,18 @@
     filtered.forEach((data) => {
       const cell = document.createElement("div");
       cell.className = "icon-cell";
-      cell.innerHTML = `
-        <img src="${data.imageUrl}" alt="${data.streamerName || ""}" loading="lazy">
-        <button class="fav-btn${data.isFavorite ? " is-fav" : ""}" aria-label="お気に入り切り替え">${data.isFavorite ? "★" : "☆"}</button>
-        <div class="label">${data.streamerName || ""}</div>`;
-      cell.querySelector(".fav-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleFavorite(data.id); });
-      cell.querySelector("img").addEventListener("click", () => openLightbox(data));
+      const img = document.createElement("img");
+      img.src = data.imageUrl; img.alt = data.streamerName || ""; img.loading = "lazy";
+      const favBtn = document.createElement("button");
+      favBtn.className = "fav-btn" + (data.isFavorite ? " is-fav" : "");
+      favBtn.setAttribute("aria-label", "お気に入り切り替え");
+      favBtn.textContent = data.isFavorite ? "★" : "☆";
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = data.streamerName || "";
+      cell.appendChild(img); cell.appendChild(favBtn); cell.appendChild(label);
+      favBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleFavorite(data.id); });
+      img.addEventListener("click", () => openLightbox(data));
       grid.appendChild(cell);
     });
   }
@@ -846,6 +883,7 @@
     try {
       if (lightboxIcon.storagePath) await deleteObject(ref(storage, lightboxIcon.storagePath)).catch((e) => console.warn(e));
       await deleteDoc(doc(db, "users", currentUser.uid, cfg.collectionName, lightboxIcon.id));
+      updateDoc(doc(db, "users", currentUser.uid), { [cfg.countField]: increment(-1) }).catch((e) => console.warn("集計値の更新に失敗:", e));
       document.getElementById("lightboxModal").classList.remove("show");
       await loadIcons();
     } catch (err) {
@@ -1029,6 +1067,10 @@
         currentTab === "received" && streamerName ? ensureCandidates("streamers", [streamerName]) : Promise.resolve(),
         ensureCandidates("reasonTags", reasonTags)
       ]);
+
+      // 管理者ページで枚数を確認できるよう、自分のプロフィールdocの集計値も更新しておく
+      // (画像そのものは含まれない、枚数だけのフィールド)
+      updateDoc(doc(db, "users", currentUser.uid), { [cfg.countField]: increment(1) }).catch((e) => console.warn("集計値の更新に失敗:", e));
 
       await loadIcons(); await loadTagList();
 

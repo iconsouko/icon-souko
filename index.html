@@ -201,7 +201,7 @@
     getAuth, GoogleAuthProvider, signInWithPopup,
     onAuthStateChanged, signOut, getAdditionalUserInfo
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
@@ -227,6 +227,10 @@
   function setStatus(msg, type) {
     statusMsg.textContent = msg || "";
     statusMsg.className = "status" + (type ? " " + type : "");
+  }
+
+  if (new URLSearchParams(window.location.search).get("blocked") === "1") {
+    setStatus("このアカウントは現在ご利用いただけません。お問い合わせフォームよりご連絡ください。", "error");
   }
 
   loginBtn.addEventListener("click", async () => {
@@ -256,6 +260,16 @@
           return;
         }
       }
+
+      // 利用停止アカウントでないか確認する(新規・既存いずれの場合も)
+      const blockSnap = await getDoc(doc(db, "blocklist", result.user.uid));
+      if (blockSnap.exists()) {
+        setStatus("このアカウントは現在ご利用いただけません。お問い合わせフォームよりご連絡ください。", "error");
+        await signOut(auth);
+        loginBtn.disabled = false;
+        return;
+      }
+
       // ここまで来たら、ログイン許可(既存ユーザー、または受付中の新規ユーザー)
       setStatus("", "");
     } catch (err) {
@@ -267,13 +281,41 @@
 
   signoutBtn.addEventListener("click", () => signOut(auth));
 
+  // users/{uid} に、メールアドレス・表示名・登録日時・保存枚数の集計値を記録しておく(管理者ページで
+  // 「どのuidが誰なのか」「何枚保存しているか」を把握するために使用。アイコンの中身は含まない)
+  async function ensureUserProfile(user) {
+    try {
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          email: user.email || "",
+          displayName: user.displayName || "",
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp(),
+          receivedIconCount: 0,
+          createdIconCount: 0
+        });
+      } else {
+        await setDoc(ref, {
+          email: user.email || "",
+          displayName: user.displayName || "",
+          lastLoginAt: serverTimestamp()
+        }, { merge: true });
+      }
+    } catch (err) {
+      // プロフィール記録に失敗しても、ログイン自体は継続させる
+      console.error("プロフィール記録に失敗:", err);
+    }
+  }
+
   onAuthStateChanged(auth, (user) => {
     loginBtn.disabled = false;
     if (user) {
       loginArea.classList.add("hide");
       welcomeArea.classList.add("show");
       userName.textContent = user.displayName || "ゲスト";
-      window.location.href = "gallery.html";
+      ensureUserProfile(user).finally(() => { window.location.href = "gallery.html"; });
     } else {
       loginArea.classList.remove("hide");
       welcomeArea.classList.remove("show");
@@ -283,3 +325,4 @@
 
 </body>
 </html>
+```

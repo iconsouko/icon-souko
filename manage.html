@@ -55,7 +55,9 @@
   }
   .btn-edit-sm { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
   .btn-delete-sm { background: none; border: 1px solid var(--error); color: var(--error); }
-  .btn-delete-sm:hover { background: var(--error); color: #fff; }
+  @media (hover: hover) {
+    .btn-delete-sm:hover { background: var(--error); color: #fff; }
+  }
 
   .rename-form { display: flex; gap: 8px; flex: 1; align-items: center; min-width: 0; }
   .rename-form input {
@@ -140,9 +142,9 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, doc, getDocs, deleteDoc, updateDoc, setDoc,
+    getFirestore, collection, doc, getDoc, getDocs, deleteDoc, updateDoc, setDoc,
     query, where, writeBatch, getCountFromServer
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
@@ -165,8 +167,19 @@
   let currentTab = "streamers"; // streamers | tags
   let candidates = []; // {id, label, normalizedLabel, count}
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = "index.html"; return; }
+    // 管理者がこのアカウントの利用を停止していないか確認する
+    try {
+      const blockSnap = await getDoc(doc(db, "blocklist", user.uid));
+      if (blockSnap.exists()) {
+        await signOut(auth);
+        window.location.href = "index.html?blocked=1";
+        return;
+      }
+    } catch (err) {
+      console.warn("利用停止状態の確認に失敗:", err);
+    }
     currentUser = user;
     loadCandidates();
   });
@@ -245,17 +258,26 @@
       const row = document.createElement("div");
       row.className = "item-row";
       row.id = `row-${c.id}`;
-      row.innerHTML = `
-        <div class="item-main">
-          <div class="item-name">${c.label}</div>
-          <div class="item-count" data-id="${c.id}">${c.count === null ? "件数を確認中…" : c.count + "枚のアイコンで使用中"}</div>
-        </div>
-        <div class="item-actions">
-          <button class="btn-delete-sm">削除</button>
-          <button class="btn-edit-sm">編集</button>
-        </div>`;
-      row.querySelector(".btn-edit-sm").addEventListener("click", () => showRenameForm(row, c));
-      row.querySelector(".btn-delete-sm").addEventListener("click", () => {
+      const main = document.createElement("div");
+      main.className = "item-main";
+      const nameEl = document.createElement("div");
+      nameEl.className = "item-name";
+      nameEl.textContent = c.label;
+      const countEl = document.createElement("div");
+      countEl.className = "item-count";
+      countEl.dataset.id = c.id;
+      countEl.textContent = c.count === null ? "件数を確認中…" : c.count + "枚のアイコンで使用中";
+      main.appendChild(nameEl); main.appendChild(countEl);
+      const actions = document.createElement("div");
+      actions.className = "item-actions";
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn-edit-sm"; editBtn.textContent = "編集";
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn-delete-sm"; delBtn.textContent = "削除";
+      actions.appendChild(editBtn); actions.appendChild(delBtn);
+      row.appendChild(main); row.appendChild(actions);
+      editBtn.addEventListener("click", () => showRenameForm(row, c));
+      delBtn.addEventListener("click", () => {
         if (currentTab === "streamers") openDeleteStreamerModal(c);
         else openDeleteTagModal(c);
       });
@@ -264,17 +286,22 @@
   }
 
   function showRenameForm(row, c) {
-    row.innerHTML = `
-      <div class="rename-form">
-        <input type="text" value="${c.label}" id="renameInput-${c.id}">
-        <button class="btn-save-sm">保存</button>
-        <button class="btn-cancel-sm">キャンセル</button>
-      </div>`;
-    row.querySelector(".btn-cancel-sm").addEventListener("click", renderList);
-    row.querySelector(".btn-save-sm").addEventListener("click", async () => {
+    row.innerHTML = "";
+    const form = document.createElement("div");
+    form.className = "rename-form";
+    const input = document.createElement("input");
+    input.type = "text"; input.value = c.label; input.id = `renameInput-${c.id}`;
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn-save-sm"; saveBtn.textContent = "保存";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "btn-cancel-sm"; cancelBtn.textContent = "キャンセル";
+    form.appendChild(input); form.appendChild(saveBtn); form.appendChild(cancelBtn);
+    row.appendChild(form);
+    cancelBtn.addEventListener("click", renderList);
+    saveBtn.addEventListener("click", async () => {
       const newLabel = document.getElementById(`renameInput-${c.id}`).value.trim();
       if (!newLabel || newLabel === c.label) { renderList(); return; }
-      row.querySelector(".btn-save-sm").disabled = true;
+      saveBtn.disabled = true;
       try {
         if (currentTab === "streamers") await renameStreamer(c, newLabel);
         else await renameTag(c, newLabel);
@@ -424,3 +451,4 @@
 
 </body>
 </html>
+```

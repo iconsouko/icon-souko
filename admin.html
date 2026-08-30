@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理者ページ | アイコン倉庫さん</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4F6D5A">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3EEE4; --surface: #FFFFFF; --ink: #3A352F; --ink-soft: #6B6259;
+    --accent: #4F6D5A; --accent-dark: #3B5445; --tag: #C98A3A; --border: #E3DACB; --error: #B4544A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Zen Kaku Gothic New', sans-serif; color: var(--ink); min-height: 100vh; }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px;
+    display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 16px; margin: 0; }
+  .back-link { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; }
+  .back-link:hover { text-decoration: underline; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 20px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 18px 20px; margin-bottom: 18px; }
+  .panel h2 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 14.5px; color: var(--accent-dark); margin: 0 0 14px; }
+  .panel .sub { font-size: 11.5px; color: var(--ink-soft); margin: -10px 0 14px; line-height: 1.7; }
+
+  .stat-row { display: flex; gap: 12px; }
+  .stat-box { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-box .num { font-family: 'Zen Maru Gothic', sans-serif; font-size: 22px; color: var(--accent-dark); font-weight: 700; }
+  .stat-box .label { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input[type="text"], .field input[type="number"] {
+    width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 15px; background: var(--bg);
+  }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; margin-bottom: 14px; }
+  .btn { padding: 10px 16px; border-radius: 9px; font-size: 13.5px; cursor: pointer; border: none; font-family: 'Zen Kaku Gothic New', sans-serif; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-ghost { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
+  .btn-danger { background: none; border: 1px solid var(--error); color: var(--error); }
+  @media (hover: hover) { .btn-danger:hover { background: var(--error); color: #fff; } }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+  .user-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .user-row:last-child { border-bottom: none; }
+  .user-main { font-size: 13.5px; font-weight: 500; }
+  .user-sub { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.6; }
+  .user-badge { display: inline-block; background: var(--tag); color: #fff; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+  .user-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .user-actions button { padding: 6px 11px; border-radius: 7px; font-size: 12px; cursor: pointer; }
+
+  .status-msg { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+  .status-msg.ok { color: var(--accent-dark); }
+  .status-msg.error { color: var(--error); }
+
+  .gate-msg { text-align: center; padding: 60px 20px; color: var(--ink-soft); font-size: 14px; line-height: 1.9; }
+  .loading-msg { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 13px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,53,47,0.5); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border-radius: 16px; padding: 24px 20px; max-width: 360px; width: 100%; }
+  .modal h3 { font-family: 'Zen Maru Gothic', sans-serif; font-size: 15px; margin: 0 0 10px; color: var(--error); }
+  .modal p { font-size: 13px; line-height: 1.8; margin: 0 0 14px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button { flex: 1; padding: 11px; border-radius: 9px; font-size: 13.5px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="gallery.html">← ギャラリーへ戻る</a>
+  <h1>管理者ページ</h1>
+</header>
+
+<main>
+  <div id="gateArea" class="gate-msg">確認中です…</div>
+
+  <div id="adminArea" style="display:none;">
+
+    <div class="panel">
+      <h2>全体状況</h2>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="num" id="statUserCount">-</div>
+          <div class="label">登録者数</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="statIconCount">-</div>
+          <div class="label">アイコン合計枚数</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>無料枠の上限設定</h2>
+      <p class="sub">全員共通の保存上限枚数と、上限に達したときの案内文です。</p>
+      <div class="field">
+        <label for="limitInput">共通の保存上限(枚)</label>
+        <input type="number" id="limitInput" min="1">
+      </div>
+      <div class="field">
+        <label for="limitMsgInput">上限到達時のメッセージ</label>
+        <input type="text" id="limitMsgInput">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveLimitBtn">保存する</button>
+      </div>
+      <p class="status-msg" id="limitStatus"></p>
+    </div>
+
+    <div class="panel">
+      <h2>新規登録の受付設定</h2>
+      <p class="sub">「登録者数」欄は今このページが数えた実際の人数です。ズレていたら「実数を反映」で合わせられます。</p>
+      <div class="checkbox-row">
+        <input type="checkbox" id="signupOpenInput">
+        <label for="signupOpenInput" style="margin:0;">新規登録を受け付ける</label>
+      </div>
+      <div class="field">
+        <label for="maxUsersInput">受付人数の上限</label>
+        <input type="number" id="maxUsersInput" min="0">
+      </div>
+      <div class="field">
+        <label for="currentCountInput">現在の登録者数(受付判定に使う値)</label>
+        <input type="number" id="currentCountInput" min="0">
+      </div>
+      <div class="field">
+        <label for="closedMsgInput">受付停止中に表示するメッセージ</label>
+        <input type="text" id="closedMsgInput">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="syncCountBtn">実数を反映</button>
+        <button class="btn btn-primary" id="saveSignupBtn">保存する</button>
+      </div>
+      <p class="status-msg" id="signupStatus"></p>
+    </div>
+
+    <div class="panel">
+      <h2>利用者一覧</h2>
+      <p class="sub">枚数は利用者自身の端末から記録される目安の数値です(画像そのものへは管理者ページからアクセスしません)。「利用を停止する」は再ログインをブロックするだけで、保存データは消えません。データそのものを完全に削除したい場合は、Firebaseコンソールから操作してください。</p>
+      <div id="userList"><div class="loading-msg">読み込み中…</div></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- 個別上限の設定 -->
+<div class="modal-overlay" id="limitModal">
+  <div class="modal">
+    <h3 style="color:var(--accent-dark);">個別の保存上限を設定</h3>
+    <p id="limitModalName"></p>
+    <div class="field">
+      <label for="userLimitInput">この利用者だけの上限枚数(空欄で個別設定を解除)</label>
+      <input type="number" id="userLimitInput" min="1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="limitModalCancel">キャンセル</button>
+      <button class="btn-primary" id="limitModalSave" style="background:var(--accent); color:#fff; border:none;">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 利用停止/解除の確認 -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3 id="deleteModalTitle">この利用者の利用を停止しますか?</h3>
+    <p id="deleteModalDesc"></p>
+    <p id="deleteModalWarn" style="color:var(--error); display:none;"></p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="deleteModalCancel">キャンセル</button>
+      <button id="deleteModalConfirm" style="background:var(--error); color:#fff; border:none;">利用を停止する</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc,
+    query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // ここに、あなた自身のFirebase Authentication上のUIDを貼り付けてください。
+  // 確認方法: Firebaseコンソール → Authentication → Users タブ → 自分のGoogleアカウントの行にある「User UID」列をコピー
+  // このUIDと、Firestoreのセキュリティルールに設定するUIDは必ず同じ値にしてください。
+  const ADMIN_UID = "i3jkZAakklVUFYd4deb51ecU4dI3";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhv01yHGyeRysg82Hr0pZPNSUpezDxU-k",
+    authDomain: "icon-souko-b2471.firebaseapp.com",
+    projectId: "icon-souko-b2471",
+    storageBucket: "icon-souko-b2471.firebasestorage.app",
+    messagingSenderId: "638657050327",
+    appId: "1:638657050327:web:9b1f5ac8345c6064326292"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const gateArea = document.getElementById("gateArea");
+  const adminArea = document.getElementById("adminArea");
+
+  let userLimitsMap = {}; // uid -> limit
+  let blockedSet = new Set(); // 利用停止中のuid
+  let usersData = [];     // [{uid, email, displayName, createdAt, receivedIconCount, createdIconCount}]
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = "index.html"; return; }
+    if (!ADMIN_UID || ADMIN_UID === "ここに自分のUIDを貼り付け" || user.uid !== ADMIN_UID) {
+      gateArea.textContent = "このページを表示する権限がありません。管理者アカウントでログインし直してください。";
+      return;
+    }
+    gateArea.style.display = "none";
+    adminArea.style.display = "block";
+    await loadAll();
+  });
+
+  async function loadAll() {
+    await Promise.all([loadUsers(), loadLimitsConfig(), loadSignupConfig(), loadUserLimits(), loadBlocklist()]);
+    renderUserList();
+  }
+
+  // ===== 集計(画像やライバー名・タグの中身には一切アクセスしない。
+  // 利用者本人が自分のプロフィールdocに書き込んでいる「枚数」だけを読む) =====
+  async function loadUsers() {
+    const snap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc")));
+    usersData = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+    document.getElementById("statUserCount").textContent = usersData.length;
+    const total = usersData.reduce((sum, u) => sum + (u.receivedIconCount || 0) + (u.createdIconCount || 0), 0);
+    document.getElementById("statIconCount").textContent = total;
+  }
+
+  async function loadUserLimits() {
+    const snap = await getDocs(collection(db, "userLimits"));
+    userLimitsMap = {};
+    snap.forEach((d) => { userLimitsMap[d.id] = d.data().limit; });
+  }
+
+  async function loadBlocklist() {
+    const snap = await getDocs(collection(db, "blocklist"));
+    blockedSet = new Set(snap.docs.map((d) => d.id));
+  }
+
+  function renderUserList() {
+    const listEl = document.getElementById("userList");
+    listEl.innerHTML = "";
+    if (usersData.length === 0) {
+      listEl.innerHTML = '<div class="loading-msg">登録者がまだいません。</div>';
+      return;
+    }
+    usersData.forEach((u) => {
+      const totalIcons = (u.receivedIconCount || 0) + (u.createdIconCount || 0);
+      const customLimit = userLimitsMap[u.uid];
+      const isBlocked = blockedSet.has(u.uid);
+
+      const row = document.createElement("div");
+      row.className = "user-row";
+
+      const main = document.createElement("div");
+      main.className = "user-main";
+      main.textContent = u.displayName || "(表示名なし)";
+      if (customLimit) {
+        const badge = document.createElement("span");
+        badge.className = "user-badge";
+        badge.textContent = `上限${customLimit}枚`;
+        main.appendChild(badge);
+      }
+      if (isBlocked) {
+        const badge = document.createElement("span");
+        badge.className = "user-badge";
+        badge.style.background = "var(--error)";
+        badge.textContent = "利用停止中";
+        main.appendChild(badge);
+      }
+
+      const sub = document.createElement("div");
+      sub.className = "user-sub";
+      const joined = u.createdAt && u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString("ja-JP") : "-";
+      sub.textContent = `${u.email || "(メール不明)"} ・ 登録日 ${joined} ・ もらった${u.receivedIconCount || 0}枚 / つくった${u.createdIconCount || 0}枚(計${totalIcons}枚・目安)`;
+
+      const actions = document.createElement("div");
+      actions.className = "user-actions";
+      const limitBtn = document.createElement("button");
+      limitBtn.className = "btn-ghost"; limitBtn.textContent = "個別上限を設定";
+      limitBtn.addEventListener("click", () => openLimitModal(u, customLimit));
+      const blockBtn = document.createElement("button");
+      blockBtn.className = "btn-danger";
+      blockBtn.textContent = isBlocked ? "利用停止を解除" : "利用を停止する";
+      blockBtn.addEventListener("click", () => openBlockModal(u, isBlocked));
+      actions.appendChild(limitBtn); actions.appendChild(blockBtn);
+
+      row.appendChild(main); row.appendChild(sub); row.appendChild(actions);
+      listEl.appendChild(row);
+    });
+  }
+
+  // ===== config/limits =====
+  async function loadLimitsConfig() {
+    const snap = await getDoc(doc(db, "config", "limits"));
+    const data = snap.exists() ? snap.data() : { freeIconLimit: 40, limitMessage: "" };
+    document.getElementById("limitInput").value = data.freeIconLimit ?? 40;
+    document.getElementById("limitMsgInput").value = data.limitMessage || "";
+  }
+  document.getElementById("saveLimitBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("limitStatus");
+    const btn = document.getElementById("saveLimitBtn");
+    const val = parseInt(document.getElementById("limitInput").value, 10);
+    if (!val || val < 1) { statusEl.textContent = "上限は1以上の数値を入力してください。"; statusEl.className = "status-msg error"; return; }
+    btn.disabled = true;
+    try {
+      await setDoc(doc(db, "config", "limits"), {
+        freeIconLimit: val,
+        limitMessage: document.getElementById("limitMsgInput").value.trim()
+      });
+      statusEl.textContent = "保存しました。"; statusEl.className = "status-msg ok";
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "保存に失敗しました。"; statusEl.className = "status-msg error";
+    }
+    btn.disabled = false;
+  });
+
+  // ===== config/signup =====
+  async function loadSignupConfig() {
+    const snap = await getDoc(doc(db, "config", "signup"));
+    const data = snap.exists() ? snap.data() : { isOpen: true, maxUsers: 50, currentUserCount: 0, closedMessage: "" };
+    document.getElementById("signupOpenInput").checked = data.isOpen !== false;
+    document.getElementById("maxUsersInput").value = data.maxUsers ?? 50;
+    document.getElementById("currentCountInput").value = data.currentUserCount ?? 0;
+    document.getElementById("closedMsgInput").value = data.closedMessage || "";
+  }
+  document.getElementById("syncCountBtn").addEventListener("click", () => {
+    document.getElementById("currentCountInput").value = usersData.length;
+  });
+  document.getElementById("saveSignupBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("signupStatus");
+    const btn = document.getElementById("saveSignupBtn");
+    btn.disabled = true;
+    try {
+      await setDoc(doc(db, "config", "signup"), {
+        isOpen: document.getElementById("signupOpenInput").checked,
+        maxUsers: parseInt(document.getElementById("maxUsersInput").value, 10) || 0,
+        currentUserCount: parseInt(document.getElementById("currentCountInput").value, 10) || 0,
+        closedMessage: document.getElementById("closedMsgInput").value.trim()
+      });
+      statusEl.textContent = "保存しました。"; statusEl.className = "status-msg ok";
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "保存に失敗しました。"; statusEl.className = "status-msg error";
+    }
+    btn.disabled = false;
+  });
+
+  // ===== 個別上限モーダル =====
+  let limitModalTarget = null;
+  function openLimitModal(u, customLimit) {
+    limitModalTarget = u;
+    document.getElementById("limitModalName").textContent = `${u.displayName || u.email || u.uid} さんの個別上限`;
+    document.getElementById("userLimitInput").value = customLimit || "";
+    document.getElementById("limitModal").classList.add("show");
+  }
+  document.getElementById("limitModalCancel").addEventListener("click", () => {
+    document.getElementById("limitModal").classList.remove("show");
+  });
+  document.getElementById("limitModalSave").addEventListener("click", async () => {
+    if (!limitModalTarget) return;
+    const raw = document.getElementById("userLimitInput").value.trim();
+    const btn = document.getElementById("limitModalSave");
+    btn.disabled = true;
+    try {
+      if (raw === "") {
+        await deleteDoc(doc(db, "userLimits", limitModalTarget.uid));
+        delete userLimitsMap[limitModalTarget.uid];
+      } else {
+        const val = parseInt(raw, 10);
+        await setDoc(doc(db, "userLimits", limitModalTarget.uid), { limit: val });
+        userLimitsMap[limitModalTarget.uid] = val;
+      }
+      document.getElementById("limitModal").classList.remove("show");
+      renderUserList();
+    } catch (err) {
+      console.error(err);
+      alert("保存に失敗しました。もう一度お試しください。");
+    }
+    btn.disabled = false;
+  });
+
+  // ===== 利用停止/解除の確認モーダル =====
+  let blockModalTarget = null;
+  let blockModalWillBlock = true;
+  function openBlockModal(u, isBlocked) {
+    blockModalTarget = u;
+    blockModalWillBlock = !isBlocked;
+    const titleEl = document.getElementById("deleteModalTitle");
+    const descEl = document.getElementById("deleteModalDesc");
+    const warnEl = document.getElementById("deleteModalWarn");
+    const confirmBtn = document.getElementById("deleteModalConfirm");
+    if (blockModalWillBlock) {
+      titleEl.textContent = "この利用者の利用を停止しますか?";
+      descEl.textContent = `${u.displayName || u.email || u.uid} さんは、今後ログインしても使えなくなります。保存済みのデータは消えません(あとで解除すれば再開できます)。`;
+      warnEl.style.display = "none";
+      confirmBtn.textContent = "利用を停止する";
+      confirmBtn.style.background = "var(--error)";
+    } else {
+      titleEl.textContent = "利用停止を解除しますか?";
+      descEl.textContent = `${u.displayName || u.email || u.uid} さんが、再びログインして利用できるようになります。`;
+      warnEl.style.display = "none";
+      confirmBtn.textContent = "解除する";
+      confirmBtn.style.background = "var(--accent)";
+    }
+    document.getElementById("deleteModal").classList.add("show");
+  }
+  document.getElementById("deleteModalCancel").addEventListener("click", () => {
+    document.getElementById("deleteModal").classList.remove("show");
+  });
+  document.getElementById("deleteModalConfirm").addEventListener("click", async () => {
+    if (!blockModalTarget) return;
+    const uid = blockModalTarget.uid;
+    const btn = document.getElementById("deleteModalConfirm");
+    btn.disabled = true;
+    try {
+      if (blockModalWillBlock) {
+        await setDoc(doc(db, "blocklist", uid), { blockedAt: new Date().toISOString() });
+      } else {
+        await deleteDoc(doc(db, "blocklist", uid));
+      }
+      document.getElementById("deleteModal").classList.remove("show");
+      await loadAll();
+    } catch (err) {
+      console.error(err);
+      alert("処理に失敗しました。もう一度お試しください。");
+    }
+    btn.disabled = false;
+  });
+</script>
+
+</body>
+</html>
