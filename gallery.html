@@ -123,6 +123,17 @@
     font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--bg);
   }
   .field .hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
+  .suggest-wrap { position: relative; }
+  .suggest-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(58,53,47,0.18); max-height: 180px; overflow-y: auto; z-index: 30;
+  }
+  .suggest-dropdown.show { display: block; }
+  .suggest-item { padding: 10px 12px; font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--border); }
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item:active { background: var(--bg); }
+  @media (hover: hover) { .suggest-item:hover { background: var(--bg); } }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-actions button { flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; cursor: pointer; }
   .btn-cancel { background: none; border: 1px solid var(--border); color: var(--ink-soft); }
@@ -320,13 +331,17 @@
     </div>
     <div class="field">
       <label for="streamerInput" id="streamerLabel">ライバー名</label>
-      <input type="text" id="streamerInput" list="streamerList" placeholder="例:れいかさん">
-      <datalist id="streamerList"></datalist>
+      <div class="suggest-wrap">
+        <input type="text" id="streamerInput" placeholder="例:れいかさん" autocomplete="off">
+        <div class="suggest-dropdown" id="streamerSuggest"></div>
+      </div>
     </div>
     <div class="field">
       <label for="tagInput">配布理由タグ(カンマ区切りで複数入力可)</label>
-      <input type="text" id="tagInput" list="tagList" placeholder="例:毎月, 誕生日記念">
-      <datalist id="tagList"></datalist>
+      <div class="suggest-wrap">
+        <input type="text" id="tagInput" placeholder="例:毎月, 誕生日記念" autocomplete="off">
+        <div class="suggest-dropdown" id="tagSuggest"></div>
+      </div>
       <div class="hint">「毎月」「誕生日記念」など、あとで絞り込みに使えます</div>
     </div>
     <div class="field">
@@ -361,11 +376,17 @@
     <div class="lightbox-info" id="lightboxEditMode" style="display:none;">
       <div class="field">
         <label id="editStreamerLabel">ライバー名</label>
-        <input type="text" id="editStreamerInput" list="streamerList">
+        <div class="suggest-wrap">
+          <input type="text" id="editStreamerInput" autocomplete="off">
+          <div class="suggest-dropdown" id="editStreamerSuggest"></div>
+        </div>
       </div>
       <div class="field">
         <label>配布理由タグ(カンマ区切り)</label>
-        <input type="text" id="editTagInput" list="tagList">
+        <div class="suggest-wrap">
+          <input type="text" id="editTagInput" autocomplete="off">
+          <div class="suggest-dropdown" id="editTagSuggest"></div>
+        </div>
       </div>
       <div class="modal-error" id="editError"></div>
       <div class="modal-actions">
@@ -583,26 +604,69 @@
     renderGrid();
   }
 
+  // iOS Safariは<datalist>の候補表示がほぼ機能しないため、
+  // 候補は配列にキャッシュしておき、独自のサジェストUI(setupAutocomplete)で表示する
+  let streamerCandidates = [];
+  let tagCandidates = [];
+
   async function loadStreamerList() {
-    const listEl = document.getElementById("streamerList");
-    listEl.innerHTML = "";
     const snap = await getDocs(collection(db, "users", currentUser.uid, "streamers"));
-    snap.forEach((d) => {
-      const opt = document.createElement("option");
-      opt.value = d.data().label;
-      listEl.appendChild(opt);
-    });
+    streamerCandidates = snap.docs.map((d) => d.data().label);
   }
   async function loadTagList() {
-    const listEl = document.getElementById("tagList");
-    listEl.innerHTML = "";
     const snap = await getDocs(collection(db, "users", currentUser.uid, "reasonTags"));
-    snap.forEach((d) => {
-      const opt = document.createElement("option");
-      opt.value = d.data().label;
-      listEl.appendChild(opt);
-    });
+    tagCandidates = snap.docs.map((d) => d.data().label);
   }
+
+  // input: 対象のinput要素 / boxEl: 候補を表示するdiv要素
+  // getCandidates: 候補配列を返す関数 / multi: カンマ区切りで複数入力する欄かどうか(タグ欄用)
+  function setupAutocomplete(inputEl, boxEl, getCandidates, multi) {
+    function currentSegment() {
+      if (!multi) return inputEl.value;
+      const parts = inputEl.value.split(",");
+      return parts[parts.length - 1].trim();
+    }
+    function applySelection(label) {
+      if (!multi) {
+        inputEl.value = label;
+      } else {
+        const parts = inputEl.value.split(",");
+        parts[parts.length - 1] = " " + label;
+        inputEl.value = parts.join(",").replace(/^,\s*/, "").replace(/^\s+/, "");
+      }
+      hide();
+      inputEl.focus();
+    }
+    function hide() { boxEl.classList.remove("show"); boxEl.innerHTML = ""; }
+    function renderAndShow(matches) {
+      boxEl.innerHTML = "";
+      matches.forEach((label) => {
+        const item = document.createElement("div");
+        item.className = "suggest-item";
+        item.textContent = label;
+        // blur(候補が消える処理)より先に発火させるためpointerdownを使用
+        item.addEventListener("pointerdown", (e) => { e.preventDefault(); applySelection(label); });
+        boxEl.appendChild(item);
+      });
+      boxEl.classList.add("show");
+    }
+    function updateSuggestions() {
+      const seg = currentSegment();
+      if (!seg) { hide(); return; }
+      const lower = seg.toLowerCase();
+      const matches = getCandidates().filter((c) => c.toLowerCase().includes(lower) && c !== seg).slice(0, 8);
+      if (matches.length === 0) { hide(); return; }
+      renderAndShow(matches);
+    }
+    inputEl.addEventListener("input", updateSuggestions);
+    inputEl.addEventListener("focus", updateSuggestions);
+    inputEl.addEventListener("blur", () => setTimeout(hide, 120));
+  }
+
+  setupAutocomplete(document.getElementById("streamerInput"), document.getElementById("streamerSuggest"), () => streamerCandidates, false);
+  setupAutocomplete(document.getElementById("tagInput"), document.getElementById("tagSuggest"), () => tagCandidates, true);
+  setupAutocomplete(document.getElementById("editStreamerInput"), document.getElementById("editStreamerSuggest"), () => streamerCandidates, false);
+  setupAutocomplete(document.getElementById("editTagInput"), document.getElementById("editTagSuggest"), () => tagCandidates, true);
 
   function populateFilterOptions() {
     const streamerSel = document.getElementById("filterStreamer");
@@ -834,6 +898,9 @@
   document.getElementById("cancelUploadBtn").addEventListener("click", () => {
     uploadModal.classList.remove("show");
     uploadGeneration += 1; // 進行中の保存処理があっても、この画面には反映させない
+    if (sessionIcons.length > 0) {
+      showSummary(); // すでに1枚以上保存済みなら、③のサマリーを表示してから終える
+    }
   });
 
   async function updateQuotaIndicator() {
