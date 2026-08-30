@@ -245,9 +245,11 @@
     <div class="menu-dropdown" id="menuDropdown">
       <a href="manage.html">ライバー・タグ管理</a>
       <a href="admin.html" id="adminMenuLink" style="display:none;">管理者ページ</a>
+      <button id="openExportBtn">保存データをエクスポート</button>
       <button id="openPwaGuideBtn">ホーム画面に追加する方法</button>
       <a href="terms.html">利用規約</a>
       <button id="signoutBtn" class="menu-item-danger">ログアウト</button>
+      <button id="openDeleteAccountBtn" class="menu-item-danger">アカウントを削除する</button>
     </div>
   </div>
 </header>
@@ -429,6 +431,48 @@
   </div>
 </div>
 
+<!-- エクスポートモーダル -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal" style="max-width:380px; text-align:left;">
+    <h2 id="exportModalTitle">保存データをエクスポート</h2>
+    <p style="font-size:12.5px; color:var(--ink-soft); line-height:1.8; margin-bottom:16px;" id="exportModalDesc">
+      「もらったアイコン」「つくったアイコン」の画像と、ライバー名・タグなどの記録をまとめてZIPファイルとしてダウンロードします。枚数によっては数十秒〜数分かかる場合があります。
+    </p>
+    <div id="exportProgressArea" style="display:none; margin-bottom:14px;">
+      <div style="background:var(--bg); border-radius:8px; height:10px; overflow:hidden; border:1px solid var(--border);">
+        <div id="exportProgressBar" style="height:100%; width:0%; background:var(--accent); transition:width 0.2s;"></div>
+      </div>
+      <p id="exportProgressText" style="font-size:11.5px; color:var(--ink-soft); margin-top:6px;"></p>
+    </div>
+    <p id="exportErrorMsg" style="color:var(--error); font-size:12.5px; display:none;"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="exportCancelBtn">閉じる</button>
+      <button class="btn-save" id="exportStartBtn">ダウンロードを開始</button>
+    </div>
+  </div>
+</div>
+
+<!-- アカウント削除モーダル -->
+<div class="modal-overlay" id="deleteAccountModal">
+  <div class="modal" style="max-width:380px; text-align:left;">
+    <h2 style="color:var(--error);">アカウントを削除する</h2>
+    <p style="font-size:12.5px; color:var(--ink-soft); line-height:1.9; margin-bottom:14px;">
+      アカウントを削除すると、保存されている「もらったアイコン」「つくったアイコン」の画像・記録、登録したライバー名・タグの候補が<strong>すべて完全に削除され、元に戻せません</strong>。<br>
+      先に「保存データをエクスポート」で画像を保存しておくことをおすすめします。
+    </p>
+    <div class="field">
+      <label for="deleteAccountConfirmInput" style="font-size:12px; color:var(--ink-soft); display:block; margin-bottom:5px;">確認のため、下の欄に「削除します」と入力してください</label>
+      <input type="text" id="deleteAccountConfirmInput" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--border); font-size:15px;" placeholder="削除します">
+    </div>
+    <div id="deleteAccountProgress" style="display:none; font-size:12px; color:var(--ink-soft); margin:8px 0;"></div>
+    <p id="deleteAccountError" style="color:var(--error); font-size:12.5px; display:none;"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="deleteAccountCancelBtn">キャンセル</button>
+      <button id="deleteAccountConfirmBtn" style="background:var(--error); color:#fff; border:none; border-radius:10px; padding:11px 18px; font-size:14px;">削除する</button>
+    </div>
+  </div>
+</div>
+
 <!-- ② 保存ごとの演出 -->
 <div class="celebration-overlay" id="celebrationOverlay">
   <div class="celebration-card">
@@ -464,6 +508,7 @@
 <!-- カード作成フローティングボタン -->
 <button class="card-fab" id="openCardModalBtn">カードをつくる</button>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -488,7 +533,7 @@
   const storage = getStorage(app);
 
   // admin.htmlと同じUIDをここに設定すると、メニューに管理者ページへのリンクが表示される(任意)
-  const ADMIN_UID = "i3jkZAakklVUFYd4deb51ecU4dI3";
+  const ADMIN_UID = "ここに自分のUIDを貼り付け";
 
   let currentUser = null;
   let iconLimit = 40;
@@ -574,6 +619,169 @@
   });
   document.getElementById("closePwaGuideBtn").addEventListener("click", () => {
     document.getElementById("pwaGuideModal").classList.remove("show");
+  });
+
+  // ===== 保存データのエクスポート =====
+  document.getElementById("openExportBtn").addEventListener("click", () => {
+    document.getElementById("menuDropdown").classList.remove("show");
+    document.getElementById("exportErrorMsg").style.display = "none";
+    document.getElementById("exportProgressArea").style.display = "none";
+    document.getElementById("exportStartBtn").disabled = false;
+    document.getElementById("exportStartBtn").textContent = "ダウンロードを開始";
+    document.getElementById("exportModal").classList.add("show");
+  });
+  document.getElementById("exportCancelBtn").addEventListener("click", () => {
+    document.getElementById("exportModal").classList.remove("show");
+  });
+
+  function sanitizeForFilename(name) {
+    return (name || "").replace(/[\\/:*?"<>|]/g, "_").trim() || "未設定";
+  }
+
+  document.getElementById("exportStartBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("exportStartBtn");
+    const errorEl = document.getElementById("exportErrorMsg");
+    const progressArea = document.getElementById("exportProgressArea");
+    const progressBar = document.getElementById("exportProgressBar");
+    const progressText = document.getElementById("exportProgressText");
+    errorEl.style.display = "none";
+    btn.disabled = true;
+    progressArea.style.display = "block";
+    progressText.textContent = "保存データを確認しています…";
+    progressBar.style.width = "3%";
+
+    try {
+      const zip = new JSZip();
+      const manifestLines = ["アイコン倉庫さん - エクスポートデータ", `出力日時: ${new Date().toLocaleString("ja-JP")}`, ""];
+
+      const targets = [
+        { tab: "received", folder: "もらったアイコン", label: "ライバー名" },
+        { tab: "created", folder: "つくったアイコン", label: "メモ" }
+      ];
+
+      let allDocs = [];
+      for (const t of targets) {
+        const snap = await getDocs(collection(db, "users", currentUser.uid, TAB_CONFIG[t.tab].collectionName));
+        snap.forEach((d) => allDocs.push({ ...d.data(), id: d.id, _target: t }));
+      }
+
+      if (allDocs.length === 0) {
+        errorEl.textContent = "エクスポートできる保存データがまだありません。";
+        errorEl.style.display = "block";
+        btn.disabled = false;
+        progressArea.style.display = "none";
+        return;
+      }
+
+      let done = 0;
+      for (const data of allDocs) {
+        const t = data._target;
+        progressText.textContent = `画像を取得しています… (${done + 1} / ${allDocs.length})`;
+        try {
+          const res = await fetch(data.imageUrl);
+          const blob = await res.blob();
+          const namePart = t.tab === "received" ? sanitizeForFilename(data.streamerName) : sanitizeForFilename(data.streamerName || "メモなし");
+          const fileName = `${t.folder}/${namePart}_${data.id}.jpg`;
+          zip.file(fileName, blob);
+          manifestLines.push(`[${t.folder}] ${data.streamerName || "(未設定)"} / タグ: ${(data.reasonTags || []).join("、") || "なし"} / 月: ${data.receivedMonth || "不明"} / ファイル: ${fileName}`);
+        } catch (e) {
+          console.warn("画像の取得に失敗:", data.id, e);
+          manifestLines.push(`[${t.folder}] ${data.streamerName || "(未設定)"} / ファイル取得に失敗しました(ID: ${data.id})`);
+        }
+        done++;
+        progressBar.style.width = `${Math.round((done / allDocs.length) * 90) + 5}%`;
+      }
+
+      zip.file("一覧.txt", manifestLines.join("\n"));
+
+      progressText.textContent = "ZIPファイルを作成しています…";
+      const zipBlob = await zip.generateAsync({ type: "blob" }, (metadata) => {
+        progressBar.style.width = `${95 + Math.round(metadata.percent * 0.05)}%`;
+      });
+
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `icon-souko-export_${today}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      progressText.textContent = "ダウンロードが完了しました。";
+      progressBar.style.width = "100%";
+      btn.textContent = "完了しました";
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent = "エクスポートに失敗しました。通信状況をご確認のうえ、もう一度お試しください。";
+      errorEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "ダウンロードを開始";
+    }
+  });
+
+  // ===== アカウントの削除 =====
+  document.getElementById("openDeleteAccountBtn").addEventListener("click", () => {
+    document.getElementById("menuDropdown").classList.remove("show");
+    document.getElementById("deleteAccountConfirmInput").value = "";
+    document.getElementById("deleteAccountError").style.display = "none";
+    document.getElementById("deleteAccountProgress").style.display = "none";
+    document.getElementById("deleteAccountConfirmBtn").disabled = false;
+    document.getElementById("deleteAccountModal").classList.add("show");
+  });
+  document.getElementById("deleteAccountCancelBtn").addEventListener("click", () => {
+    document.getElementById("deleteAccountModal").classList.remove("show");
+  });
+
+  document.getElementById("deleteAccountConfirmBtn").addEventListener("click", async () => {
+    const input = document.getElementById("deleteAccountConfirmInput");
+    const errorEl = document.getElementById("deleteAccountError");
+    const progressEl = document.getElementById("deleteAccountProgress");
+    const btn = document.getElementById("deleteAccountConfirmBtn");
+    errorEl.style.display = "none";
+
+    if (input.value.trim() !== "削除します") {
+      errorEl.textContent = "「削除します」と正確に入力してください。";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    btn.disabled = true;
+    progressEl.style.display = "block";
+    try {
+      const uid = currentUser.uid;
+      const subcollections = ["receivedIcons", "createdIcons", "streamers", "reasonTags"];
+      for (const sub of subcollections) {
+        progressEl.textContent = `データを削除しています(${sub})…`;
+        const snap = await getDocs(collection(db, "users", uid, sub));
+        for (const d of snap.docs) {
+          const data = d.data();
+          if (data.storagePath) {
+            await deleteObject(ref(storage, data.storagePath)).catch((e) => console.warn("画像削除に失敗:", e));
+          }
+          await deleteDoc(d.ref);
+        }
+      }
+
+      progressEl.textContent = "プロフィール情報を削除しています…";
+      await deleteDoc(doc(db, "users", uid)).catch((e) => console.warn(e));
+
+      progressEl.textContent = "ログイン情報を削除しています…";
+      await currentUser.delete();
+
+      window.location.href = "index.html";
+    } catch (err) {
+      console.error(err);
+      if (err && err.code === "auth/requires-recent-login") {
+        errorEl.textContent = "セキュリティのため、削除には再ログインが必要です。一度ログアウトし、もう一度ログインしてから削除をお試しください。";
+      } else {
+        errorEl.textContent = "削除に失敗しました。通信状況をご確認のうえ、もう一度お試しください。";
+      }
+      errorEl.style.display = "block";
+      btn.disabled = false;
+      progressEl.style.display = "none";
+    }
   });
 
   // 三点メニュー
