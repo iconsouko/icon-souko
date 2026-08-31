@@ -158,6 +158,32 @@
   @media (prefers-reduced-motion: reduce) {
     .google-btn { transition: none; }
   }
+
+  .divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--ink-soft); font-size: 11.5px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  .toggle-mode { background: none; border: none; color: var(--accent-dark); font-size: 12.5px; text-decoration: underline; cursor: pointer; padding: 6px; }
+
+  .email-form { display: none; text-align: left; }
+  .email-form.show { display: block; }
+  .email-form .field { margin-bottom: 12px; }
+  .email-form label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
+  .email-form input {
+    width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 15px; background: var(--bg);
+  }
+  .email-form input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .email-submit-btn {
+    width: 100%; padding: 13px 18px; background: var(--accent); color: #fff; border: none;
+    border-radius: 12px; font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 15px;
+    font-weight: 500; cursor: pointer; margin-top: 4px;
+  }
+  .email-submit-btn:hover { background: var(--accent-dark); }
+  .email-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-switch-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12px; }
+  .form-switch-row button { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-size: 12px; padding: 4px; }
+  .google-btn.secondary-btn { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+  .google-btn.secondary-btn:hover { background: var(--bg); }
 </style>
 </head>
 <body>
@@ -184,6 +210,26 @@
         Googleでログイン
       </button>
 
+      <div class="divider">または</div>
+
+      <button class="google-btn secondary-btn" id="showEmailFormBtn">メールアドレスで利用する</button>
+
+      <div class="email-form" id="emailForm">
+        <div class="field">
+          <label for="emailInput">メールアドレス</label>
+          <input type="email" id="emailInput" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="passwordInput">パスワード(8文字以上)</label>
+          <input type="password" id="passwordInput" autocomplete="current-password" placeholder="半角英数字8文字以上">
+        </div>
+        <button class="email-submit-btn" id="emailSubmitBtn">ログイン</button>
+        <div class="form-switch-row">
+          <button type="button" id="toggleSignupModeBtn">アカウントをお持ちでない方はこちら</button>
+          <button type="button" id="forgotPasswordBtn">パスワードをお忘れですか?</button>
+        </div>
+      </div>
+
       <p class="status" id="statusMsg"></p>
       <p class="terms-link"><a href="terms.html">利用規約</a></p>
     </div>
@@ -200,7 +246,9 @@
   import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js";
   import {
     getAuth, GoogleAuthProvider, signInWithPopup,
-    onAuthStateChanged, signOut, getAdditionalUserInfo
+    onAuthStateChanged, signOut, getAdditionalUserInfo,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    sendEmailVerification, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -242,6 +290,22 @@
   if (new URLSearchParams(window.location.search).get("blocked") === "1") {
     setStatus("このアカウントは現在ご利用いただけません。お問い合わせフォームよりご連絡ください。", "error");
   }
+  if (new URLSearchParams(window.location.search).get("unverified") === "1") {
+    setStatus("メールアドレスの確認が完了していません。届いた確認メール内のリンクを開いてから、もう一度ログインしてください。", "error");
+  }
+
+  // 新規登録の受付状況を確認する(Google/メールどちらの新規登録でも共通で使う)
+  async function checkSignupGate() {
+    const signupSnap = await getDoc(doc(db, "config", "signup"));
+    const cfg = signupSnap.exists() ? signupSnap.data() : { isOpen: true, maxUsers: 0, currentUserCount: 0 };
+    const isFull = typeof cfg.maxUsers === "number" && typeof cfg.currentUserCount === "number"
+      ? cfg.currentUserCount >= cfg.maxUsers
+      : false;
+    if (cfg.isOpen === false || isFull) {
+      return { allowed: false, message: cfg.closedMessage || "現在、新規登録の受付を停止しています。" };
+    }
+    return { allowed: true };
+  }
 
   loginBtn.addEventListener("click", async () => {
     loginBtn.disabled = true;
@@ -251,18 +315,11 @@
       const info = getAdditionalUserInfo(result);
 
       if (info && info.isNewUser) {
-        // 新規登録者のみ、受付状況をチェックする
-        const signupSnap = await getDoc(doc(db, "config", "signup"));
-        const cfg = signupSnap.exists() ? signupSnap.data() : { isOpen: true, maxUsers: 0, currentUserCount: 0 };
-
-        const isFull = typeof cfg.maxUsers === "number" && typeof cfg.currentUserCount === "number"
-          ? cfg.currentUserCount >= cfg.maxUsers
-          : false;
-
-        if (cfg.isOpen === false || isFull) {
+        const gate = await checkSignupGate();
+        if (!gate.allowed) {
           // 受付停止中:今回作成されたアカウントを削除してサインアウトする
           const rejectedUser = auth.currentUser;
-          setStatus(cfg.closedMessage || "現在、新規登録の受付を停止しています。", "error");
+          setStatus(gate.message, "error");
           if (rejectedUser) {
             await rejectedUser.delete().catch(() => signOut(auth));
           }
@@ -290,6 +347,125 @@
   });
 
   signoutBtn.addEventListener("click", () => signOut(auth));
+
+  // ===== メールアドレスでのログイン/新規登録 =====
+  const showEmailFormBtn = document.getElementById("showEmailFormBtn");
+  const emailForm = document.getElementById("emailForm");
+  const emailInput = document.getElementById("emailInput");
+  const passwordInput = document.getElementById("passwordInput");
+  const emailSubmitBtn = document.getElementById("emailSubmitBtn");
+  const toggleSignupModeBtn = document.getElementById("toggleSignupModeBtn");
+  const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+  let isSignupMode = false;
+
+  showEmailFormBtn.addEventListener("click", () => {
+    emailForm.classList.toggle("show");
+  });
+
+  function applyEmailFormMode() {
+    if (isSignupMode) {
+      emailSubmitBtn.textContent = "新規登録する";
+      passwordInput.autocomplete = "new-password";
+      passwordInput.placeholder = "半角英数字8文字以上で設定してください";
+      toggleSignupModeBtn.textContent = "すでにアカウントをお持ちの方はこちら";
+    } else {
+      emailSubmitBtn.textContent = "ログイン";
+      passwordInput.autocomplete = "current-password";
+      passwordInput.placeholder = "半角英数字8文字以上";
+      toggleSignupModeBtn.textContent = "アカウントをお持ちでない方はこちら";
+    }
+  }
+  toggleSignupModeBtn.addEventListener("click", () => {
+    isSignupMode = !isSignupMode;
+    applyEmailFormMode();
+    setStatus("", "");
+  });
+
+  forgotPasswordBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    if (!email) {
+      setStatus("パスワードを再設定するメールアドレスを入力してください。", "error");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setStatus("パスワード再設定用のメールを送信しました。メールをご確認ください。", "info");
+    } catch (err) {
+      console.error(err);
+      setStatus("送信に失敗しました。メールアドレスをご確認のうえ、もう一度お試しください。", "error");
+    }
+  });
+
+  emailSubmitBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      setStatus("メールアドレスとパスワードを入力してください。", "error");
+      return;
+    }
+    if (isSignupMode && password.length < 8) {
+      setStatus("パスワードは8文字以上で設定してください。", "error");
+      return;
+    }
+
+    emailSubmitBtn.disabled = true;
+    setStatus(isSignupMode ? "登録処理中です…" : "ログイン処理中です…", "info");
+
+    try {
+      if (isSignupMode) {
+        // 新規登録:先に受付状況を確認してからアカウントを作成する
+        const gate = await checkSignupGate();
+        if (!gate.allowed) {
+          setStatus(gate.message, "error");
+          emailSubmitBtn.disabled = false;
+          return;
+        }
+
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(cred.user);
+        await ensureUserProfile(cred.user);
+        await signOut(auth); // 認証メールのリンクを踏むまでは利用させない
+        setStatus("確認メールを送信しました。メール内のリンクを開いたあと、もう一度こちらからログインしてください。", "info");
+        isSignupMode = false;
+        applyEmailFormMode();
+        passwordInput.value = "";
+      } else {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        if (!cred.user.emailVerified) {
+          await signOut(auth);
+          setStatus("メールアドレスの確認が完了していません。届いた確認メール内のリンクを開いてから、もう一度ログインしてください。", "error");
+          emailSubmitBtn.disabled = false;
+          return;
+        }
+        // 利用停止アカウントでないか確認する
+        const blockSnap = await getDoc(doc(db, "blocklist", cred.user.uid));
+        if (blockSnap.exists()) {
+          setStatus("このアカウントは現在ご利用いただけません。お問い合わせフォームよりご連絡ください。", "error");
+          await signOut(auth);
+          emailSubmitBtn.disabled = false;
+          return;
+        }
+        setStatus("", "");
+      }
+    } catch (err) {
+      console.error(err);
+      let msg = "処理に失敗しました。もう一度お試しください。";
+      if (err && err.code === "auth/email-already-in-use") {
+        msg = "このメールアドレスは既に登録されています。ログインをお試しいただくか、Googleでご登録済みの場合はそちらをご利用ください。";
+      } else if (err && err.code === "auth/invalid-email") {
+        msg = "メールアドレスの形式が正しくありません。";
+      } else if (err && (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential")) {
+        msg = "メールアドレスまたはパスワードが正しくありません。";
+      } else if (err && err.code === "auth/user-not-found") {
+        msg = "このメールアドレスで登録されたアカウントが見つかりません。";
+      } else if (err && err.code === "auth/too-many-requests") {
+        msg = "試行回数が多すぎます。しばらくしてからもう一度お試しください。";
+      }
+      setStatus(msg, "error");
+    }
+    emailSubmitBtn.disabled = false;
+  });
 
   // users/{uid} に、メールアドレス・表示名・登録日時・保存枚数の集計値を記録しておく(管理者ページで
   // 「どのuidが誰なのか」「何枚保存しているか」を把握するために使用。アイコンの中身は含まない)
@@ -324,7 +500,7 @@
     if (user) {
       loginArea.classList.add("hide");
       welcomeArea.classList.add("show");
-      userName.textContent = user.displayName || "ゲスト";
+      userName.textContent = user.displayName || (user.email ? user.email.split("@")[0] : "ゲスト");
       ensureUserProfile(user).finally(() => { window.location.href = "gallery.html"; });
     } else {
       loginArea.classList.remove("hide");
