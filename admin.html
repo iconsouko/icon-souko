@@ -91,6 +91,7 @@
 
     <div class="panel">
       <h2>全体状況</h2>
+      <p class="sub">管理者(あなた)自身のアカウントは、以下の数値・一覧のいずれにも含みません。</p>
       <div class="stat-row">
         <div class="stat-box">
           <div class="num" id="statUserCount">-</div>
@@ -247,7 +248,8 @@
   // 利用者本人が自分のプロフィールdocに書き込んでいる「枚数」だけを読む) =====
   async function loadUsers() {
     const snap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc")));
-    usersData = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+    // 管理者自身のアカウントは、集計・一覧のどちらからも除外する(実際の利用者数を正しく把握するため)
+    usersData = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((u) => u.uid !== ADMIN_UID);
     document.getElementById("statUserCount").textContent = usersData.length;
     const total = usersData.reduce((sum, u) => sum + (u.receivedIconCount || 0) + (u.createdIconCount || 0), 0);
     document.getElementById("statIconCount").textContent = total;
