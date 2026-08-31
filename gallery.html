@@ -1535,11 +1535,6 @@
         ctx.fillText(`ほか ${remainCount}枚`, W / 2, footerY);
       }
 
-      ctx.textAlign = "right";
-      ctx.font = "500 19px 'Zen Maru Gothic', sans-serif";
-      ctx.fillStyle = INK;
-      ctx.fillText("アイコン倉庫さん", W - 50, H - 56);
-
       ctx.textAlign = "center";
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
       ctx.font = "400 13px 'Zen Kaku Gothic New', sans-serif";
