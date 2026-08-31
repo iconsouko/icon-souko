@@ -596,6 +596,13 @@
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = "index.html"; return; }
+    // メールアドレス+パスワードで登録した利用者の場合、メール確認が済んでいるか確認する
+    // (Googleアカウントは常にemailVerified=trueなので、この判定の影響を受けない)
+    if (!user.emailVerified) {
+      await signOut(auth);
+      window.location.href = "index.html?unverified=1";
+      return;
+    }
     // 管理者がこのアカウントの利用を停止していないか確認する
     try {
       const blockSnap = await getDoc(doc(db, "blocklist", user.uid));
