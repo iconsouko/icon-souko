@@ -142,6 +142,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, collection, doc, getDoc, getDocs, deleteDoc, updateDoc, setDoc,
@@ -159,6 +160,15 @@
   };
 
   const app = initializeApp(firebaseConfig);
+
+  // Firebase App Check: 正規のアプリ画面から送られたリクエストであることを証明する仕組み。
+  // botや、apiKeyだけを盗んだ外部からの直接アクセスを、Firestore/Storageの手前でブロックする。
+  // サイトキーは、reCAPTCHA v3の管理画面(https://www.google.com/recaptcha/admin)で
+  // このサイトのドメインを登録すると発行される。
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider("6LcB56AtAAAAAN5S6dfzpetXHlACA4UEOFQhcG4e"),
+    isTokenAutoRefreshEnabled: true
+  });
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
