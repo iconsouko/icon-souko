@@ -548,6 +548,23 @@
   let iconLimit = 40;
   let limitMessage = "無料でご利用いただける上限に達しました。";
 
+  // 保存・削除のたびに加減算しているプロフィールdoc上の枚数(receivedIconCount/createdIconCount)は、
+  // それを導入する前に保存された古いアイコンを反映していない・通信エラー等でズレる可能性がある。
+  // ログインのたびに、実際の件数を数え直して正しい値に自己修正しておく(管理者ページの表示用)。
+  async function reconcileIconCounts() {
+    try {
+      const updates = {};
+      for (const key of Object.keys(TAB_CONFIG)) {
+        const cfg = TAB_CONFIG[key];
+        const snap = await getCountFromServer(collection(db, "users", currentUser.uid, cfg.collectionName));
+        updates[cfg.countField] = snap.data().count;
+      }
+      await updateDoc(doc(db, "users", currentUser.uid), updates);
+    } catch (err) {
+      console.warn("枚数の自己修正に失敗:", err);
+    }
+  }
+
   async function loadIconLimit() {
     try {
       const limitsSnap = await getDoc(doc(db, "config", "limits"));
@@ -618,6 +635,7 @@
     if (ADMIN_UID && user.uid === ADMIN_UID) {
       document.getElementById("adminMenuLink").style.display = "block";
     }
+    reconcileIconCounts(); // 管理者ページ用の集計値を、実際の枚数に合わせて自己修正しておく
     loadIconLimit();
     setColumns(currentCols);
     loadStreamerList();
