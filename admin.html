@@ -186,7 +186,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js";
+  import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc,
@@ -214,7 +214,7 @@
   // サイトキーは、reCAPTCHA v3の管理画面(https://www.google.com/recaptcha/admin)で
   // このサイトのドメインを登録すると発行される。
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider("6LcB56AtAAAAAN5S6dfzpetXHlACA4UEOFQhcG4e"),
+    provider: new ReCaptchaEnterpriseProvider("6LfyXKEtAAAAAMKwdQENo1aEUxJf-svx1y6ntJ3T"),
     isTokenAutoRefreshEnabled: true
   });
   const auth = getAuth(app);
