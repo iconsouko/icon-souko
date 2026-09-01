@@ -483,9 +483,9 @@
         await sendEmailVerification(cred.user);
         await ensureUserProfile(cred.user);
         await signOut(auth); // 認証メールのリンクを踏むまでは利用させない
-        setStatus("確認メールを送信しました。メール内のリンクを開いたあと、このページに戻ってログインしてください。届かない場合は、迷惑メールフォルダもご確認ください。", "info");
         passwordInput.value = "";
-        setEmailFormMode("login");
+        setEmailFormMode("login"); // 先にモードを切り替える(内部でメッセージがリセットされるため)
+        setStatus("確認メールを送信しました。メール内のリンクを開いたあと、このページに戻ってログインしてください。届かない場合は、迷惑メールフォルダもご確認ください。", "info");
         suppressAuthUI = false;
       } else {
         const cred = await signInWithEmailAndPassword(auth, email, password);
