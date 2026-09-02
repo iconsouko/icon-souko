@@ -152,6 +152,13 @@
   }
   .status.error { color: var(--error); }
   .status.info { color: var(--ink-soft); }
+  .trust-note { font-size: 11px; color: var(--ink-soft); line-height: 1.6; margin: 8px 0 0; }
+  .about-box { margin-top: 26px; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; text-align: left; }
+  .about-title { font-family: 'Zen Maru Gothic', sans-serif; font-size: 12.5px; color: var(--accent-dark); margin: 0 0 6px; }
+  .about-text { font-size: 11.5px; color: var(--ink-soft); line-height: 1.8; margin: 0 0 8px; }
+  .about-links { font-size: 11.5px; margin: 0; }
+  .about-links a { color: var(--accent-dark); text-decoration: underline; }
+  .about-sep { color: var(--ink-soft); margin: 0 4px; }
   .terms-link { margin-top: 14px; }
   .terms-link a { font-size: 11.5px; color: var(--ink-soft); text-decoration: underline; }
 
@@ -229,6 +236,7 @@
         </svg>
         Googleでログイン
       </button>
+      <p class="trust-note">パスワードの入力は不要です。認証はGoogle側で行われ、当サービスがパスワードを見ることはありません。</p>
 
       <div class="divider">または</div>
 
@@ -253,6 +261,17 @@
       </div>
 
       <p class="status" id="statusMsg"></p>
+
+      <div class="about-box">
+        <p class="about-title">運営者について</p>
+        <p class="about-text">個人で開発・運営しています。広告は表示されません。ご不安な点があれば、いつでもお問い合わせください。データはいつでもご自身で削除・退会いただけます。</p>
+        <p class="about-links">
+          <a href="https://x.com/niche2026" target="_blank" rel="noopener">X: @niche2026</a>
+          <span class="about-sep">・</span>
+          <a href="mailto:iconsoukoadmin@gmail.com">iconsoukoadmin@gmail.com</a>
+        </p>
+      </div>
+
       <p class="terms-link"><a href="terms.html">利用規約</a></p>
     </div>
 
