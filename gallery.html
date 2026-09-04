@@ -1117,8 +1117,11 @@
       { value: "registeredAsc", label: "登録順(古い)" },
       { value: "monthDesc", label: `${cfg.monthLabel}:新しい順` },
       { value: "monthAsc", label: `${cfg.monthLabel}:古い順` },
-      { value: "streamerAsc", label: "ライバー名順(あいうえお)" },
     ];
+    // 「つくったアイコン」ではライバー名欄が自由記述のメモ用途のため、名前順の並べ替えは表示しない
+    if (currentTab === "received") {
+      opts.push({ value: "streamerAsc", label: "ライバー名順(あいうえお)" });
+    }
     sel.innerHTML = "";
     opts.forEach((o) => {
       const opt = document.createElement("option");
