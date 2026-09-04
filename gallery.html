@@ -77,6 +77,7 @@
   }
   .period-tilde { color: var(--ink-soft); font-size: 13px; }
   .period-clear { background: none; border: none; color: var(--ink-soft); font-size: 12px; text-decoration: underline; cursor: pointer; margin-left: auto; }
+  .sort-select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 15px; background: var(--surface); color: var(--ink); width: 100%; }
 
   .card-fab {
     position: fixed; right: 20px; bottom: 24px; z-index: 50;
@@ -275,6 +276,7 @@
       <select id="filterTag"><option value="">タグ:すべて</option></select>
       <label class="fav-filter"><input type="checkbox" id="filterFavOnly"> お気に入りのみ</label>
       <button class="period-toggle" id="periodToggle">期間を指定する ▾</button>
+      <button class="period-toggle" id="sortToggle">並べ替え ▾</button>
       <span class="filter-count" id="filterCount"></span>
     </div>
     <div class="period-row" id="periodRow" style="display:none;">
@@ -288,6 +290,9 @@
         <select id="galToMonth"><option value="">月</option></select>
       </div>
       <button class="period-clear" id="periodClearBtn">クリア</button>
+    </div>
+    <div class="period-row" id="sortRow" style="display:none;">
+      <select id="sortSelect" class="sort-select"></select>
     </div>
     <div class="grid cols-2" id="grid"></div>
     <div class="empty-state" id="emptyState" style="display:none;">
@@ -388,6 +393,13 @@
         <div class="suggest-wrap">
           <input type="text" id="editTagInput" autocomplete="off">
           <div class="suggest-dropdown" id="editTagSuggest"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label id="editMonthLabel">受け取った月</label>
+        <div class="month-select-row">
+          <select id="editMonthYear"><option value="">年</option></select>
+          <select id="editMonthMonth"><option value="">月</option></select>
         </div>
       </div>
       <div class="modal-error" id="editError"></div>
@@ -889,6 +901,7 @@
     allIcons = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     document.getElementById("emptyStateText").innerHTML = cfg.emptyText;
     populateFilterOptions();
+    populateSortOptions();
     renderGrid();
   }
 
@@ -1000,7 +1013,7 @@
       if (periodTo && (!icon.receivedMonth || icon.receivedMonth > periodTo)) return false;
       return true;
     });
-    currentFilteredIcons = filtered;
+    currentFilteredIcons = sortIconsList(filtered, currentSort);
 
     grid.innerHTML = "";
     if (allIcons.length === 0) {
@@ -1009,9 +1022,9 @@
       return;
     }
     emptyState.style.display = "none";
-    filterCount.textContent = `${filtered.length} / ${allIcons.length} 枚`;
+    filterCount.textContent = `${currentFilteredIcons.length} / ${allIcons.length} 枚`;
 
-    filtered.forEach((data) => {
+    currentFilteredIcons.forEach((data) => {
       const cell = document.createElement("div");
       cell.className = "icon-cell";
       const img = document.createElement("img");
@@ -1063,6 +1076,8 @@
     document.getElementById("galToMonth").innerHTML = '<option value="">月</option>' + monthOptions;
     document.getElementById("monthInputYear").innerHTML = '<option value="">年</option>' + yearOptions;
     document.getElementById("monthInputMonth").innerHTML = '<option value="">月</option>' + monthOptions;
+    document.getElementById("editMonthYear").innerHTML = '<option value="">年</option>' + yearOptions;
+    document.getElementById("editMonthMonth").innerHTML = '<option value="">月</option>' + monthOptions;
   }
   function getGalFromValue() {
     const y = document.getElementById("galFromYear").value, m = document.getElementById("galFromMonth").value;
@@ -1091,6 +1106,63 @@
     document.getElementById(id).addEventListener("change", renderGrid);
   });
 
+  // 並べ替え(折りたたみ式。デフォルトは「登録順(新しい)」= 従来通りの並びのまま、挙動を変えない)
+  let currentSort = "registeredDesc";
+  function populateSortOptions() {
+    const cfg = TAB_CONFIG[currentTab];
+    const sel = document.getElementById("sortSelect");
+    const prev = sel.value || currentSort;
+    const opts = [
+      { value: "registeredDesc", label: "登録順(新しい)" },
+      { value: "registeredAsc", label: "登録順(古い)" },
+      { value: "monthDesc", label: `${cfg.monthLabel}:新しい順` },
+      { value: "monthAsc", label: `${cfg.monthLabel}:古い順` },
+      { value: "streamerAsc", label: "ライバー名順(あいうえお)" },
+    ];
+    sel.innerHTML = "";
+    opts.forEach((o) => {
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.value = opts.some((o) => o.value === prev) ? prev : "registeredDesc";
+    currentSort = sel.value;
+  }
+  function sortIconsList(list, mode) {
+    const arr = list.slice();
+    switch (mode) {
+      case "monthAsc":
+        arr.sort((a, b) => (a.receivedMonth || "").localeCompare(b.receivedMonth || ""));
+        break;
+      case "monthDesc":
+        arr.sort((a, b) => (b.receivedMonth || "").localeCompare(a.receivedMonth || ""));
+        break;
+      case "registeredAsc":
+        arr.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+        break;
+      case "streamerAsc":
+        arr.sort((a, b) => (a.streamerName || "").localeCompare(b.streamerName || "", "ja"));
+        break;
+      case "registeredDesc":
+      default:
+        // allIconsは元々FirestoreクエリでcreatedAt降順取得済みのため、並べ替え不要
+        break;
+    }
+    return arr;
+  }
+  const sortToggle = document.getElementById("sortToggle");
+  const sortRow = document.getElementById("sortRow");
+  sortToggle.addEventListener("click", () => {
+    const isOpen = sortRow.style.display !== "none";
+    sortRow.style.display = isOpen ? "none" : "flex";
+    sortToggle.classList.toggle("open", !isOpen);
+    sortToggle.textContent = isOpen ? "並べ替え ▾" : "並べ替え ▴";
+  });
+  document.getElementById("sortSelect").addEventListener("change", (e) => {
+    currentSort = e.target.value;
+    renderGrid();
+  });
+
   // ===== ライトボックス(拡大・保存・編集・削除) =====
   let lightboxIcon = null;
 
@@ -1117,6 +1189,10 @@
     document.getElementById("editStreamerLabel").textContent = cfg.streamerLabel;
     document.getElementById("editStreamerInput").value = lightboxIcon.streamerName || "";
     document.getElementById("editTagInput").value = (lightboxIcon.reasonTags || []).join(", ");
+    document.getElementById("editMonthLabel").textContent = cfg.monthLabel;
+    const [my, mm] = (lightboxIcon.receivedMonth || "").split("-");
+    document.getElementById("editMonthYear").value = my || "";
+    document.getElementById("editMonthMonth").value = mm || "";
     document.getElementById("editError").textContent = "";
     loadStreamerList();
     document.getElementById("lightboxViewMode").style.display = "none";
@@ -1131,13 +1207,16 @@
     const cfg = TAB_CONFIG[currentTab];
     const newStreamer = document.getElementById("editStreamerInput").value.trim();
     const newTagsRaw = document.getElementById("editTagInput").value.trim();
+    const newMonthY = document.getElementById("editMonthYear").value;
+    const newMonthM = document.getElementById("editMonthMonth").value;
+    const newMonth = newMonthY && newMonthM ? `${newMonthY}-${newMonthM}` : "";
     const errorEl = document.getElementById("editError");
     const saveBtn = document.getElementById("editSaveBtn");
     if (cfg.streamerRequired && !newStreamer) { errorEl.textContent = `${cfg.streamerLabel}を入力してください。`; return; }
     const newTags = newTagsRaw ? newTagsRaw.split(/[,、]/).map((t) => t.trim()).filter(Boolean) : [];
     saveBtn.disabled = true; saveBtn.textContent = "保存中…";
     try {
-      await updateDoc(doc(db, "users", currentUser.uid, cfg.collectionName, lightboxIcon.id), { streamerName: newStreamer, reasonTags: newTags });
+      await updateDoc(doc(db, "users", currentUser.uid, cfg.collectionName, lightboxIcon.id), { streamerName: newStreamer, reasonTags: newTags, receivedMonth: newMonth });
       if (currentTab === "received" && newStreamer) await ensureCandidates("streamers", [newStreamer]);
       await ensureCandidates("reasonTags", newTags);
       document.getElementById("lightboxModal").classList.remove("show");
