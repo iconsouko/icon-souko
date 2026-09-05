@@ -873,10 +873,6 @@
     }
     vv.addEventListener("resize", reposition);
     vv.addEventListener("scroll", reposition);
-    // モーダルを開いた瞬間にも、その時点のビューポートに合わせておく
-    document.addEventListener("focusin", (e) => {
-      if (e.target.closest(".modal-overlay")) setTimeout(reposition, 50);
-    });
     // モーダルが開かれた瞬間(showクラス付与時)にも、前回のズレた値を引きずらないよう反映しておく
     const observer = new MutationObserver(() => reposition());
     document.querySelectorAll(".modal-overlay").forEach((el) => {
