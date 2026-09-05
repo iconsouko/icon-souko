@@ -68,19 +68,28 @@
   .col-toggle button { border: none; background: none; padding: 5px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; color: var(--ink-soft); }
   .col-toggle button.active { background: var(--surface); color: var(--accent-dark); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
 
-  .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; padding: 10px 12px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
-  .filter-bar select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--surface); color: var(--ink); }
-  .fav-filter { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
+  .control-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .control-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink-soft);
+    padding: 7px 13px; border-radius: 999px; font-size: 12.5px; font-family: 'Zen Kaku Gothic New', sans-serif;
+    cursor: pointer; position: relative; transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .control-toggle:hover { border-color: var(--accent); color: var(--accent-dark); }
+  .control-toggle.open { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .control-toggle.open .ctrl-icon { color: #fff; }
+  .ctrl-icon { width: 15px; height: 15px; color: var(--accent); flex-shrink: 0; }
+  .control-toggle.open .ctrl-icon { color: #fff; }
+  .control-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tag); position: absolute; top: 4px; right: 6px; }
+  .control-toggle.open .control-dot { background: #fff; }
   .filter-count { margin-left: auto; font-size: 11.5px; color: var(--ink-soft); }
-  .period-toggle {
-    background: none; border: 1px solid var(--border); color: var(--ink-soft);
-    padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
-  }
-  .period-toggle.open { background: var(--surface); color: var(--accent-dark); }
-  .period-row {
+
+  .filter-panel {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin: -6px 0 16px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    margin: 0 0 16px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
   }
+  .filter-panel select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--surface); color: var(--ink); }
+  .fav-filter { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
   .period-tilde { color: var(--ink-soft); font-size: 13px; }
   .period-clear { background: none; border: none; color: var(--ink-soft); font-size: 12px; text-decoration: underline; cursor: pointer; margin-left: auto; }
   .sort-select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 16px; background: var(--surface); color: var(--ink); width: 100%; }
@@ -277,15 +286,27 @@
         <button data-cols="4">4列</button>
       </div>
     </div>
-    <div class="filter-bar">
+    <div class="control-bar">
+      <button class="control-toggle" id="filterToggle">
+        <svg class="ctrl-icon" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M6 10h8M8.5 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        絞り込み<span class="control-dot" id="filterDot" style="display:none;"></span>
+      </button>
+      <button class="control-toggle" id="periodToggle">
+        <svg class="ctrl-icon" viewBox="0 0 20 20" fill="none"><rect x="3" y="4.5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 8h14M6.5 3v3M13.5 3v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        期間<span class="control-dot" id="periodDot" style="display:none;"></span>
+      </button>
+      <button class="control-toggle" id="sortToggle">
+        <svg class="ctrl-icon" viewBox="0 0 20 20" fill="none"><path d="M5 6h10M7 10h6M9 14h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        並べ替え
+      </button>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+    <div class="filter-panel" id="filterPanel" style="display:none;">
       <select id="filterStreamer"><option value="">ライバー:すべて</option></select>
       <select id="filterTag"><option value="">タグ:すべて</option></select>
       <label class="fav-filter"><input type="checkbox" id="filterFavOnly"> お気に入りのみ</label>
-      <button class="period-toggle" id="periodToggle">期間を指定する ▾</button>
-      <button class="period-toggle" id="sortToggle">並べ替え ▾</button>
-      <span class="filter-count" id="filterCount"></span>
     </div>
-    <div class="period-row" id="periodRow" style="display:none;">
+    <div class="filter-panel" id="periodRow" style="display:none;">
       <div class="month-select-row">
         <select id="galFromYear"><option value="">開始:年</option></select>
         <select id="galFromMonth"><option value="">月</option></select>
@@ -297,7 +318,7 @@
       </div>
       <button class="period-clear" id="periodClearBtn">クリア</button>
     </div>
-    <div class="period-row" id="sortRow" style="display:none;">
+    <div class="filter-panel" id="sortRow" style="display:none;">
       <select id="sortSelect" class="sort-select"></select>
     </div>
     <div class="grid cols-2" id="grid"></div>
@@ -1011,6 +1032,10 @@
     const periodFrom = getGalFromValue();
     const periodTo = getGalToValue();
 
+    // 「絞り込み」「期間」トグルに、条件が設定されているかどうかの小さな目印(ドット)を表示する
+    document.getElementById("filterDot").style.display = (streamerFilter || tagFilter || favOnly) ? "block" : "none";
+    document.getElementById("periodDot").style.display = (periodFrom || periodTo) ? "block" : "none";
+
     const filtered = allIcons.filter((icon) => {
       if (streamerFilter && icon.streamerName !== streamerFilter) return false;
       if (tagFilter && !(icon.reasonTags || []).includes(tagFilter)) return false;
@@ -1093,14 +1118,33 @@
     const y = document.getElementById("galToYear").value, m = document.getElementById("galToMonth").value;
     return y && m ? `${y}-${m}` : "";
   }
+
+  // 「絞り込み」「期間」「並べ替え」の3つのトグル+パネル。
+  // アイコンを含むボタンなので、開閉時にtextContentは書き換えず、
+  // クラス(open)の付け外しだけで見た目を切り替える。同時に開くのは1つだけにする。
+  const panelToggles = [
+    { toggle: document.getElementById("filterToggle"), panel: document.getElementById("filterPanel") },
+    { toggle: document.getElementById("periodToggle"), panel: document.getElementById("periodRow") },
+    { toggle: document.getElementById("sortToggle"), panel: document.getElementById("sortRow") },
+  ];
+  function closeAllPanels(exceptPanel) {
+    panelToggles.forEach(({ toggle, panel }) => {
+      if (panel === exceptPanel) return;
+      panel.style.display = "none";
+      toggle.classList.remove("open");
+    });
+  }
+  panelToggles.forEach(({ toggle, panel }) => {
+    toggle.addEventListener("click", () => {
+      const isOpen = panel.style.display !== "none";
+      closeAllPanels(isOpen ? null : panel);
+      panel.style.display = isOpen ? "none" : "flex";
+      toggle.classList.toggle("open", !isOpen);
+    });
+  });
+
   const periodToggle = document.getElementById("periodToggle");
   const periodRow = document.getElementById("periodRow");
-  periodToggle.addEventListener("click", () => {
-    const isOpen = periodRow.style.display !== "none";
-    periodRow.style.display = isOpen ? "none" : "flex";
-    periodToggle.classList.toggle("open", !isOpen);
-    periodToggle.textContent = isOpen ? "期間を指定する ▾" : "期間を指定する ▴";
-  });
   document.getElementById("periodClearBtn").addEventListener("click", () => {
     document.getElementById("galFromYear").value = "";
     document.getElementById("galFromMonth").value = "";
@@ -1159,14 +1203,6 @@
     }
     return arr;
   }
-  const sortToggle = document.getElementById("sortToggle");
-  const sortRow = document.getElementById("sortRow");
-  sortToggle.addEventListener("click", () => {
-    const isOpen = sortRow.style.display !== "none";
-    sortRow.style.display = isOpen ? "none" : "flex";
-    sortToggle.classList.toggle("open", !isOpen);
-    sortToggle.textContent = isOpen ? "並べ替え ▾" : "並べ替え ▴";
-  });
   document.getElementById("sortSelect").addEventListener("change", (e) => {
     currentSort = e.target.value;
     renderGrid();
