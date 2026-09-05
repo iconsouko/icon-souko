@@ -857,29 +857,12 @@
     }
   });
 
-  // iOS Safariでは、入力欄にフォーカスしてキーボードが表示されると、見えている範囲(ビジュアルビューポート)
-  // だけが縮むのに対し、position:fixedの要素は元のレイアウト基準のまま動かないことがあり、
-  // 見た目の位置とタップ判定の位置がズレて「ボタンが押せない」状態になることがある。
-  // window.visualViewportを使い、キーボードの開閉に合わせてモーダルの表示範囲を実際に見えている範囲へ追従させる。
-  function setupKeyboardSafeModals() {
-    if (!window.visualViewport) return;
-    const vv = window.visualViewport;
-    const overlaySelectors = ".modal-overlay.show";
-    function reposition() {
-      document.querySelectorAll(overlaySelectors).forEach((el) => {
-        el.style.height = vv.height + "px";
-        el.style.top = vv.offsetTop + "px";
-      });
-    }
-    vv.addEventListener("resize", reposition);
-    vv.addEventListener("scroll", reposition);
-    // モーダルが開かれた瞬間(showクラス付与時)にも、前回のズレた値を引きずらないよう反映しておく
-    const observer = new MutationObserver(() => reposition());
-    document.querySelectorAll(".modal-overlay").forEach((el) => {
-      observer.observe(el, { attributes: true, attributeFilter: ["class"] });
-    });
-  }
-  setupKeyboardSafeModals();
+  // 【2026-09対応】以前はここで、iOS Safariのキーボード表示時にモーダル位置を
+  // window.visualViewportを使って強制的に調整するJavaScriptを入れていたが、
+  // 最新のSafariの挙動と衝突し、入力時に画面が拡大される・キーボードを閉じる動作が
+  // カクつく、という新たな不具合を引き起こしていたため撤去した。
+  // 代わりに、.modal-overlay / .modal 側のCSS(overflow-y: auto、max-height: 90vh)による
+  // 「はみ出した分は自然にスクロールして見せる」という、JSに頼らないシンプルな対処に一本化している。
 
   // 三点メニュー
   const menuToggle = document.getElementById("menuToggle");
